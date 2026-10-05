@@ -15,8 +15,22 @@ const app = express();
 
 app.use(express.json());
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+// Swagger Documentation with Great UI
+const swaggerOptions = {
+  customCss: `
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .swagger-ui .topbar { background-color: #2c3e50; color: #fff; }
+    .swagger-ui .info .title { color: #2c3e50; font-weight: bold; }
+    .swagger-ui .opblock { border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .swagger-ui .opblock-summary-method { border-radius: 4px; font-weight: bold; }
+    .swagger-ui .opblock-summary-description { font-size: 14px; }
+    .swagger-ui .opblock-summary-tag { background: #3498db; color: white; border-radius: 4px; padding: 2px 8px; }
+    .swagger-ui .btn-execute { background-color: #27ae60; color: white; border-radius: 4px; border: none; }
+    .swagger-ui .btn-execute:hover { background-color: #2ecc71; }
+  `,
+};
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)

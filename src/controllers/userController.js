@@ -14,6 +14,7 @@ const signToken = (id) => {
  * /api/users/register:
  *   post:
  *     summary: Register a new user
+ *     description: Creates a new user account with a hashed password and personal hourly rate.
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -21,14 +22,31 @@ const signToken = (id) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [username, email, password]
  *             properties:
- *               username: { type: string }
- *               email: { type: string }
- *               password: { type: string }
- *               personalRate: { type: number }
+ *               username: { type: string, example: 'johndoe' }
+ *               email: { type: string, example: 'john@example.com' }
+ *               password: { type: string, example: 'password123' }
+ *               personalRate: { type: number, example: 25 }
  *     responses:
  *       201:
  *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 token: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const register = catchAsync(async (req, res, next) => {
   const { username, email, password, personalRate } = req.body;
@@ -58,6 +76,7 @@ export const register = catchAsync(async (req, res, next) => {
  * /api/users/login:
  *   post:
  *     summary: Login user
+ *     description: Authenticates a user and returns a JWT access token.
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -65,12 +84,29 @@ export const register = catchAsync(async (req, res, next) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [email, password]
  *             properties:
- *               email: { type: string }
- *               password: { type: string }
+ *               email: { type: string, example: 'john@example.com' }
+ *               password: { type: string, example: 'password123' }
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 token: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
@@ -107,12 +143,28 @@ export const login = catchAsync(async (req, res, next) => {
  * /api/users/me:
  *   get:
  *     summary: Get current user profile
+ *     description: Returns the profile of the currently authenticated user.
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const getMe = catchAsync(async (req, res, next) => {
   res.status(200).json({
@@ -128,6 +180,7 @@ export const getMe = catchAsync(async (req, res, next) => {
  * /api/users/me:
  *   patch:
  *     summary: Update current user profile
+ *     description: Updates the profile information of the currently authenticated user.
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -138,13 +191,28 @@ export const getMe = catchAsync(async (req, res, next) => {
  *           schema:
  *             type: object
  *             properties:
- *               username: { type: string }
- *               email: { type: string }
- *               personalRate: { type: number }
- *               role: { type: string, enum: [user, manager] }
+ *               username: { type: string, example: 'newusername' }
+ *               email: { type: string, example: 'new@example.com' }
+ *               personalRate: { type: number, example: 30 }
+ *               role: { type: string, enum: [user, manager], example: 'manager' }
  *     responses:
  *       200:
  *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const updateMe = catchAsync(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(req.params.id, req.body, {
