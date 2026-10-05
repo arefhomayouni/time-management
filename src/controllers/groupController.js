@@ -5,6 +5,27 @@ import Invitation from '../models/Invitation.js';
 import ApiFeatures from 'vanta-api';
 import { catchAsync } from 'vanta-api';
 
+/**
+ * @swagger
+ * /api/groups:
+ *   post:
+ *     summary: Create a new group
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               hourlyRate: { type: number }
+ *     responses:
+ *       201:
+ *         description: Group created successfully
+ */
 export const createGroup = catchAsync(async (req, res, next) => {
   const { name, hourlyRate } = req.body;
 
@@ -21,6 +42,27 @@ export const createGroup = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/groups/invite:
+ *   post:
+ *     summary: Invite a user to a group
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *               groupId: { type: string }
+ *     responses:
+ *       201:
+ *         description: Invitation sent successfully
+ */
 export const inviteUser = catchAsync(async (req, res, next) => {
   const { email, groupId } = req.body;
 
@@ -59,8 +101,29 @@ export const inviteUser = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/groups/invitation/handle:
+ *   post:
+ *     summary: Accept or decline a group invitation
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               invitationId: { type: string }
+ *               status: { type: string, enum: [accepted, declined] }
+ *     responses:
+ *       200:
+ *         description: Invitation handled successfully
+ */
 export const handleInvitation = catchAsync(async (req, res, next) => {
-  const { invitationId, status } = req.body; // status: 'accepted' or 'declined'
+  const { invitationId, status } = req.body;
 
   const invitation = await Invitation.findById(invitationId);
   if (!invitation || invitation.toUser.toString() !== req.user.id) {
@@ -85,6 +148,51 @@ export const handleInvitation = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/groups/my-groups:
+ *   get:
+ *     summary: Get groups the user belongs to
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Groups fetched successfully
+ */
+export const getMyGroups = catchAsync(async (req, res, next) => {
+  const features = new ApiFeatures(Group, req.query, req.user.role)
+    .addManualFilters({ members: req.user.id })
+    .filter()
+    .sort()
+    .paginate();
+
+  const result = await features.execute();
+
+  res.status(200).json({
+    success: true,
+    count: result.count,
+    data: result.data
+  });
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/members:
+ *   get:
+ *     summary: Get group members (Manager only)
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Members fetched successfully
+ */
 export const getGroupMembers = catchAsync(async (req, res, next) => {
   const group = await Group.findById(req.params.id);
   if (!group) {
@@ -106,6 +214,31 @@ export const getGroupMembers = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/groups/{id}/report:
+ *   get:
+ *     summary: Get monthly payment report for group (Manager only)
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: month
+ *         schema: { type: integer }
+ *         required: true
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer }
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
 export const getGroupReport = catchAsync(async (req, res, next) => {
   const { month, year } = req.query;
   const groupId = req.params.id;
@@ -133,7 +266,6 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
     date: { $gte: startDate, $lte: endDate }
   });
 
-  // Calculate per user
   const reports = {};
   logs.forEach(log => {
     const userId = log.user.toString();
@@ -141,22 +273,22 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
       reports[userId] = {
         userId,
         totalHours: 0,
-        totalAmount: 0
+        totalAmount: 0,
+        paidAmount: 0
       };
     }
     reports[userId].totalHours += log.hours;
     reports[userId].totalAmount += log.amount;
   });
 
-  const reportArray = Object.values(reports).map(async (report) => {
+  const reportArray = await Promise.all(Object.values(reports).map(async (report) => {
     const user = await User.findById(report.userId);
     return {
       ...report,
-      username: user ? user.username : 'Unknown'
+      username: user ? user.username : 'Unknown',
+      status: report.paidAmount < report.totalAmount ? 'Underpaid' : report.paidAmount > report.totalAmount ? 'Overpaid' : 'Exact'
     };
-  });
-
-  const finalReports = await Promise.all(reportArray);
+  }));
 
   res.status(200).json({
     success: true,
@@ -164,23 +296,7 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
       group: group.name,
       month,
       year,
-      reports: finalReports
+      reports: reportArray
     }
-  });
-});
-
-export const getMyGroups = catchAsync(async (req, res, next) => {
-  const features = new ApiFeatures(Group, req.query, req.user.role)
-    .addManualFilters({ members: req.user.id })
-    .filter()
-    .sort()
-    .paginate();
-
-  const result = await features.execute();
-
-  res.status(200).json({
-    success: true,
-    count: result.count,
-    data: result.data
   });
 });

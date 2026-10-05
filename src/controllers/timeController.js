@@ -5,6 +5,28 @@ import ApiFeatures from 'vanta-api';
 import { catchAsync } from 'vanta-api';
 import mongoose from 'mongoose';
 
+/**
+ * @swagger
+ * /api/time/logs:
+ *   post:
+ *     summary: Add a time log
+ *     tags: [Time]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date: { type: string, format: date }
+ *               hours: { type: number }
+ *               groupId: { type: string }
+ *     responses:
+ *       201:
+ *         description: Log added successfully
+ */
 export const addTimeLog = catchAsync(async (req, res, next) => {
   const { date, hours, groupId } = req.body;
 
@@ -35,6 +57,18 @@ export const addTimeLog = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/time/logs:
+ *   get:
+ *     summary: Get my time logs
+ *     tags: [Time]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logs fetched successfully
+ */
 export const getMyLogs = catchAsync(async (req, res, next) => {
   const features = new ApiFeatures(TimeLog, req.query, req.user.role)
     .addManualFilters({ user: req.user.id })
@@ -51,6 +85,27 @@ export const getMyLogs = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/time/earnings:
+ *   get:
+ *     summary: Get monthly earnings
+ *     tags: [Time]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: month
+ *         schema: { type: integer }
+ *         required: true
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer }
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Earnings calculated successfully
+ */
 export const getMonthlyEarnings = catchAsync(async (req, res, next) => {
   const { month, year } = req.query; // e.g., month=10, year=2026
 

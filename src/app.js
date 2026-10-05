@@ -5,12 +5,18 @@ import { catchError } from 'vanta-api';
 import userRoutes from './routes/userRoutes.js';
 import timeRoutes from './routes/timeRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './config/swagger.js';
 
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -21,6 +27,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/users', userRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Basic Route for testing
 app.get('/', (req, res) => {

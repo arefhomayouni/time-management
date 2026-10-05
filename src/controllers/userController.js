@@ -9,6 +9,27 @@ const signToken = (id) => {
   });
 };
 
+/**
+ * @swagger
+ * /api/users/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username: { type: string }
+ *               email: { type: string }
+ *               password: { type: string }
+ *               personalRate: { type: number }
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ */
 export const register = catchAsync(async (req, res, next) => {
   const { username, email, password, personalRate } = req.body;
 
@@ -32,6 +53,25 @@ export const register = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/users/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *               password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
 export const login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -62,6 +102,18 @@ export const login = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile fetched successfully
+ */
 export const getMe = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
@@ -71,6 +123,29 @@ export const getMe = catchAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/users/me:
+ *   patch:
+ *     summary: Update current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username: { type: string }
+ *               email: { type: string }
+ *               personalRate: { type: number }
+ *               role: { type: string, enum: [user, manager] }
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ */
 export const updateMe = catchAsync(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(req.params.id, req.body, {
     new: true,

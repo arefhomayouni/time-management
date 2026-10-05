@@ -24,6 +24,11 @@ const timeLogSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  status: {
+    type: String,
+    enum: ['pending', 'paid'],
+    default: 'pending'
+  },
   createdAt: {
     type: Date,
     default: Date.now
