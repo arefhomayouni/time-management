@@ -122,7 +122,7 @@ dist
 # DynamoDB Local files
 .dynamodb/
 
-# TernJS port file
+# Tern port file
 .tern-port
 
 # Stores VSCode versions used for testing VSCode extensions
@@ -134,3 +134,6 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# OS files
+.DS_Store
