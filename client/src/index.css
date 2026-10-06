@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --luxury-black: #0a0a0a;
+  --luxury-gold: #D4AF37;
+  --luxury-gold-light: #F9E4B7;
+  --luxury-dark-gray: #1a1a1a;
+  --luxury-accent: #C0C0C0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--luxury-black);
+  color: white;
+}
+
+.luxury-text-gold {
+  color: var(--luxury-gold);
+}
+
+.luxury-bg-gold {
+  background-color: var(--luxury-gold);
+}
+
+.luxury-border-gold {
+  border-color: var(--luxury-gold);
+}
