@@ -3,10 +3,12 @@ import { motion } from 'framer-motion';
 import { LogOut, Plus, Calendar, TrendingUp, Clock, Users, DollarSign } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import apiClient from '../services/api';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [logs, setLogs] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any>(null);
@@ -43,23 +45,23 @@ const Dashboard: React.FC = () => {
       setTimeEntry({ date: '', hours: '', groupId: '' });
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add log');
+      alert(err.response?.data?.message || t('common.error'));
     }
   };
 
-  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-luxury-black text-luxury-gold">Loading Dashboard...</div>;
+  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-luxury-black text-luxury-gold">{t('common.loading')}</div>;
 
   return (
     <div className="min-h-screen bg-luxury-black text-white p-6 md:p-10">
       {/* Header */}
       <header className="flex justify-between items-center mb-12">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, <span className="text-luxury-gold">{user?.username}</span></h1>
-          <p className="text-gray-400">Here is your performance overview for this month.</p>
+          <h1 className="text-3xl font-bold">{t('dashboard.welcome')}, <span className="text-luxury-gold">{user?.username}</span></h1>
+          <p className="text-gray-400">{t('dashboard.overview')}</p>
         </div>
         <div className="flex gap-4">
-          <Link to="/profile" className="px-4 py-2 rounded-lg bg-luxury-darkGray border border-white/10 hover:border-luxury-gold transition-all">Profile</Link>
-          <button onClick={logout} className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Logout</button>
+          <Link to="/profile" className="px-4 py-2 rounded-lg bg-luxury-darkGray border border-white/10 hover:border-luxury-gold transition-all">{t('nav.profile')}</Link>
+          <button onClick={logout} className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">{t('common.logout')}</button>
         </div>
       </header>
 
@@ -68,7 +70,7 @@ const Dashboard: React.FC = () => {
         <motion.div whileHover={{ y: -5 }} className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 flex items-center gap-6">
           <div className="p-4 rounded-2xl bg-luxury-gold/20 text-luxury-gold"><TrendingUp className="w-8 h-8" /></div>
           <div>
-            <p className="text-gray-400 text-sm">Monthly Earnings</p>
+            <p className="text-gray-400 text-sm">{t('dashboard.monthly_earnings')}</p>
             <h3 className="text-3xl font-bold">${earnings?.totalEarnings?.toFixed(2) || '0.00'}</h3>
           </div>
         </motion.div>
@@ -76,7 +78,7 @@ const Dashboard: React.FC = () => {
         <motion.div whileHover={{ y: -5 }} className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 flex items-center gap-6">
           <div className="p-4 rounded-2xl bg-blue-500/20 text-blue-400"><Clock className="w-8 h-8" /></div>
           <div>
-            <p className="text-gray-400 text-sm">Hours Worked</p>
+            <p className="text-gray-400 text-sm">{t('dashboard.hours_worked')}</p>
             <h3 className="text-3xl font-bold">{logs.reduce((sum, l) => sum + l.hours, 0).toFixed(1)}h</h3>
           </div>
         </motion.div>
@@ -84,7 +86,7 @@ const Dashboard: React.FC = () => {
         <motion.div whileHover={{ y: -5 }} className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 flex items-center gap-6">
           <div className="p-4 rounded-2xl bg-purple-500/20 text-purple-400"><Users className="w-8 h-8" /></div>
           <div>
-            <p className="text-gray-400 text-sm">Active Groups</p>
+            <p className="text-gray-400 text-sm">{t('dashboard.active_groups')}</p>
             <h3 className="text-3xl font-bold">Ready to Join</h3>
           </div>
         </motion.div>
@@ -95,11 +97,11 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-1">
           <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-luxury-gold" /> Log Time
+              <Plus className="w-5 h-5 text-luxury-gold" /> {t('dashboard.log_time')}
             </h2>
             <form onSubmit={handleAddLog} className="space-y-4">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Date</label>
+                <label className="block text-xs text-gray-400 mb-1">{t('dashboard.date')}</label>
                 <input
                   type="date"
                   className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all"
@@ -109,7 +111,7 @@ const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Hours</label>
+                <label className="block text-xs text-gray-400 mb-1">{t('dashboard.hours')}</label>
                 <input
                   type="number"
                   step="0.1"
@@ -120,7 +122,7 @@ const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Group ID (Optional)</label>
+                <label className="block text-xs text-gray-400 mb-1">{t('dashboard.group_id')}</label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all"
@@ -129,7 +131,7 @@ const Dashboard: React.FC = () => {
                 />
               </div>
               <button type="submit" className="w-full py-3 bg-luxury-gold text-luxury-black font-bold rounded-xl hover:bg-luxury-goldLight transition-all duration-300">
-                Save Entry
+                {t('dashboard.save_btn')}
               </button>
             </form>
           </div>
@@ -139,16 +141,16 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10 overflow-hidden">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-luxury-gold" /> Work History
+              <Calendar className="w-5 h-5 text-luxury-gold" /> {t('dashboard.history_title')}
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-gray-400 text-sm border-b border-white/10">
-                    <th className="pb-4 font-medium">Date</th>
-                    <th className="pb-4 font-medium">Hours</th>
-                    <th className="pb-4 font-medium">Amount</th>
-                    <th className="pb-4 font-medium">Status</th>
+                    <th className="pb-4 font-medium">{t('dashboard.table_date')}</th>
+                    <th className="pb-4 font-medium">{t('dashboard.table_hours')}</th>
+                    <th className="pb-4 font-medium">{t('dashboard.table_amount')}</th>
+                    <th className="pb-4 font-medium">{t('dashboard.table_status')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -166,7 +168,7 @@ const Dashboard: React.FC = () => {
                   ))}
                   {logs.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="py-10 text-center text-gray-500">No logs found. Start tracking your time!</td>
+                      <td colSpan={4} className="py-10 text-center text-gray-500">{t('dashboard.no_logs')}</td>
                     </tr>
                   )}
                 </tbody>
