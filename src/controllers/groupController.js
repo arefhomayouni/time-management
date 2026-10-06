@@ -2,6 +2,7 @@ import Group from '../models/Group.js';
 import User from '../models/User.js';
 import TimeLog from '../models/TimeLog.js';
 import Invitation from '../models/Invitation.js';
+import Payment from '../models/Payment.js';
 import ApiFeatures from 'vanta-api';
 import { catchAsync } from 'vanta-api';
 
@@ -301,7 +302,7 @@ export const getGroupMembers = catchAsync(async (req, res, next) => {
  * /api/groups/{id}/report:
  *   get:
  *     summary: Get monthly payment report for group (Manager only)
- *     description: Generates a report for a specific month/year showing total hours and amount owed by each member.
+ *     description: Generates a report for a specific month/year showing total hours, amount owed, and amount paid by each member.
  *     tags: [Groups]
  *     security:
  *       - bearerAuth: []
@@ -399,10 +400,20 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
 
   const reportArray = await Promise.all(Object.values(reports).map(async (report) => {
     const user = await User.findById(report.userId);
+
+    const payments = await Payment.find({
+      user: report.userId,
+      group: groupId,
+      date: { $gte: startDate, $lte: endDate }
+    });
+
+    const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+
     return {
       ...report,
+      paidAmount,
       username: user ? user.username : 'Unknown',
-      status: report.paidAmount < report.totalAmount ? 'Underpaid' : report.paidAmount > report.totalAmount ? 'Overpaid' : 'Exact'
+      status: paidAmount < report.totalAmount ? 'Underpaid' : paidAmount > report.totalAmount ? 'Overpaid' : 'Exact'
     };
   }));
 
