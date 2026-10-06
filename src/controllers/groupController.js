@@ -428,18 +428,4 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
   });
 });
 
-export const getMyGroups = catchAsync(async (req, res, next) => {
-  const features = new ApiFeatures(Group, req.query, req.user.role)
-    .addManualFilters({ members: req.user.id })
-    .filter()
-    .sort()
-    .paginate();
 
-  const result = await features.execute();
-
-  res.status(200).json({
-    success: true,
-    count: result.count,
-    data: result.data
-  });
-});
