@@ -12,7 +12,7 @@ import {
   useGetMyInvitationsQuery,
   useHandleInvitationMutation,
 } from '../store/api/apiSlice';
-import { money } from '../utils/format';
+import { useMoney } from '../utils/format';
 
 const GroupSchema = Yup.object().shape({
   name: Yup.string().min(2, 'Too short').required('Group name is required'),
@@ -28,6 +28,7 @@ const GroupSchema = Yup.object().shape({
 
 const GroupsPage: React.FC = () => {
   const { t } = useLanguage();
+  const money = useMoney();
   const user = useAppSelector((s) => s.auth.user);
   const [showCreate, setShowCreate] = useState(false);
 

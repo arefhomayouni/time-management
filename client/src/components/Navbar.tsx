@@ -8,10 +8,12 @@ import {
   GlobeHemisphereEast,
   Sun,
   Moon,
+  CurrencyCircleDollar,
+  Coins,
 } from '@phosphor-icons/react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
-import { toggleTheme } from '../store/slices/uiSlice';
+import { toggleTheme, cycleCurrency } from '../store/slices/uiSlice';
 import { useLanguage } from '../hooks/useLanguage';
 import toast from 'react-hot-toast';
 
@@ -30,6 +32,7 @@ const Navbar: React.FC = () => {
   const { t, language, setLanguage } = useLanguage();
   const user = useAppSelector((s) => s.auth.user);
   const theme = useAppSelector((s) => s.ui.theme);
+  const currency = useAppSelector((s) => s.ui.currency);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -88,6 +91,14 @@ const Navbar: React.FC = () => {
             aria-label={t('nav.toggle_theme')}
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button
+            onClick={() => dispatch(cycleCurrency())}
+            className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
+            title={currency === 'dual' ? 'USD + IRR' : currency === 'usd' ? 'USD' : 'IRR'}
+            aria-label="Change currency"
+          >
+            {currency === 'dual' ? <CurrencyCircleDollar size={18} /> : currency === 'usd' ? <CurrencyCircleDollar size={18} /> : <Coins size={18} />}
           </button>
 
           {user ? (

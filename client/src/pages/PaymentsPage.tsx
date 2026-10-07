@@ -3,10 +3,11 @@ import toast from 'react-hot-toast';
 import { Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useGetMyPaymentsQuery } from '../store/api/apiSlice';
-import { money, shortDate, monthRange, toDateInput } from '../utils/format';
+import { useMoney, shortDate, monthRange, toDateInput } from '../utils/format';
 
 const PaymentsPage: React.FC = () => {
   const { t } = useLanguage();
+  const money = useMoney();
   const now = new Date();
   const [range, setRange] = useState(() => {
     // Default: last 90 days so new users see something meaningful

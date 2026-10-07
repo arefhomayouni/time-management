@@ -45,7 +45,7 @@ const WeekWidget: React.FC = () => {
           <p className="mt-1 text-[13px] text-muted">{t('home.widget_hint')}</p>
         </div>
         <div className="text-right">
-          <p className="num text-2xl font-semibold text-accent">{money(totalPay)}</p>
+          <p className="num text-2xl font-semibold text-accent">{money(totalPay, { currency: 'usd', dual: true })}</p>
           <p className="num text-xs text-muted">
             {fmtHours(totalH)} {t('common.hours_unit')}
           </p>
@@ -94,7 +94,7 @@ const WeekWidget: React.FC = () => {
           className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-inset accent-accent"
         />
         <span className="num w-16 shrink-0 text-right text-sm font-semibold">
-          {money(rate)}/{t('common.hr')}
+          {money(rate, { currency: 'usd', dual: true })}/{t('common.hr')}
         </span>
       </div>
 
@@ -103,7 +103,7 @@ const WeekWidget: React.FC = () => {
           {t('home.widget_monthly')}
         </span>
         <span className="num text-sm font-semibold">
-          {money(totalPay * 4.33)}
+          {money(totalPay * 4.33, { currency: 'usd', dual: true })}
         </span>
       </div>
     </div>
@@ -318,7 +318,7 @@ const HomePage: React.FC = () => {
               </div>
               <p className="mt-2 text-sm leading-relaxed text-muted">{t('home.c4_desc')}</p>
               <div className="num mt-5 flex items-baseline gap-2">
-                <span className="text-3xl font-semibold text-ink">{money(38)}</span>
+                <span className="text-3xl font-semibold text-ink">{money(38, { currency: 'usd', dual: true })}</span>
                 <span className="text-sm text-muted">/ {t('common.hr')}</span>
               </div>
             </div>
@@ -382,8 +382,8 @@ const HomePage: React.FC = () => {
                       <tr key={r.name} className="transition-colors hover:bg-inset/60">
                         <td className="table-cell font-medium text-ink">{r.name}</td>
                         <td className="table-cell num text-muted">{fmtHours(r.h)}</td>
-                        <td className="table-cell num font-semibold text-ink">{money(r.owed)}</td>
-                        <td className="table-cell num text-muted">{money(r.paid)}</td>
+                        <td className="table-cell num font-semibold text-ink">{money(r.owed, { currency: 'usd', dual: true })}</td>
+                        <td className="table-cell num text-muted">{money(r.paid, { currency: 'usd', dual: true })}</td>
                         <td className="table-cell">
                           <span
                             className={`badge ${

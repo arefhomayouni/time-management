@@ -23,7 +23,7 @@ import {
   useGetGroupPaymentsQuery,
   useMakePaymentMutation,
 } from '../store/api/apiSlice';
-import { money, hours as fmtHours, monthRange, shortDate } from '../utils/format';
+import { useMoney, hours as fmtHours, monthRange, shortDate } from '../utils/format';
 
 const InviteSchema = Yup.object().shape({
   email: Yup.string().email('Enter a valid email').required('Email is required'),
@@ -48,6 +48,7 @@ const GroupDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const money = useMoney();
   const user = useAppSelector((s) => s.auth.user);
 
   const now = new Date();

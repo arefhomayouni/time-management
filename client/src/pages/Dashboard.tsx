@@ -20,7 +20,7 @@ import {
   useDeleteTimeLogMutation,
   useGetMyGroupsQuery,
 } from '../store/api/apiSlice';
-import { money, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
+import { useMoney, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
 
 const EntrySchema = Yup.object().shape({
   date: Yup.date().typeError('Pick a date').required('Date is required'),
@@ -36,6 +36,7 @@ type RangeKey = 'this' | 'last' | '30' | 'custom';
 
 const Dashboard: React.FC = () => {
   const { t } = useLanguage();
+  const money = useMoney();
   const user = useAppSelector((s) => s.auth.user);
   const [rangeKey, setRangeKey] = useState<RangeKey>('this');
   const [custom, setCustom] = useState(() => {
