@@ -140,10 +140,10 @@ const GroupsPage: React.FC = () => {
         {groups.map((group: any) => {
           const isManager = group.manager === user?._id;
           return (
-            <article key={group._id} className="card flex flex-col p-6 transition-colors hover:border-accent/40">
+            <article key={group._id} className="card-deep flex flex-col p-6 transition-all duration-150 hover:border-accent/50 hover:shadow-[0_6px_18px_-8px_rgb(0,0,0,0.08)]">
               <div className="flex items-start justify-between gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
-                  <UsersThree size={20} />
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.15)]">
+                  <UsersThree size={20} weight="light" />
                 </span>
                 <span
                   className={`badge ${
@@ -157,12 +157,12 @@ const GroupsPage: React.FC = () => {
               <dl className="num mt-3 space-y-1.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-muted">{t('groups.hourly_rate')}</dt>
-                  <dd className="font-semibold">{money(group.hourlyRate)}</dd>
+                  <dd className="num font-semibold text-ink">{money(group.hourlyRate)}</dd>
                 </div>
                 {group.budget > 0 && (
                   <div className="flex justify-between">
                     <dt className="text-muted">{t('groups.budget').split('(')[0].trim()}</dt>
-                    <dd className="font-semibold">{money(group.budget)}</dd>
+                    <dd className="num font-semibold text-ink">{money(group.budget)}</dd>
                   </div>
                 )}
               </dl>

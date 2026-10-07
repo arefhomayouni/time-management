@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ChartLineUp,
@@ -10,6 +10,7 @@ import {
   Moon,
   CurrencyCircleDollar,
   Coins,
+  Hexagon,
 } from '@phosphor-icons/react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
@@ -20,10 +21,13 @@ import toast from 'react-hot-toast';
 const BRAND = process.env.REACT_APP_BRAND || 'TimeLuxe';
 
 /**
- * One nav for the whole app:
- *  - signed out: marketing variant (brand + theme + lang + Sign in / Start free)
- *  - signed in: app variant (brand + section links + controls + user + sign out)
- * Fixed height 64px, always a single row on desktop.
+ * Floating island navbar: a rounded glass pill that detaches from the top
+ * edge (sits at top-4), casts a soft shadow, and contains all controls.
+ * Signed-out: brand + CTA buttons centered. Signed-in: brand left, links
+ * centered, controls right.
+ *
+ * Motions: opacity + translateY entry on mount; backdrop-blur only on the
+ * fixed island (never on scroll containers).
  */
 const Navbar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -33,6 +37,7 @@ const Navbar: React.FC = () => {
   const user = useAppSelector((s) => s.auth.user);
   const theme = useAppSelector((s) => s.ui.theme);
   const currency = useAppSelector((s) => s.ui.currency);
+  const mountedRef = useRef(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -45,8 +50,10 @@ const Navbar: React.FC = () => {
     return (
       <Link
         to={to}
-        className={`flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-medium transition-colors sm:px-3 ${
-          active ? 'bg-inset text-ink' : 'text-muted hover:text-ink'
+        className={`flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-150 ${
+          active
+            ? 'bg-accent/10 text-accent shadow-[0_0_0_1px_rgb(var(--c-accent)/0.15)]'
+            : 'text-muted hover:text-ink hover:bg-inset/60'
         }`}
       >
         <Icon size={17} weight={active ? 'fill' : 'regular'} />
@@ -55,18 +62,35 @@ const Navbar: React.FC = () => {
     );
   };
 
+  // On mount, fade in. Only once.
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+    }
+  }, []);
+
   return (
-    <header className="fixed inset-x-0 top-0 z-40 h-16 border-b border-line bg-bg/85 backdrop-blur-md">
-      <div className="mx-auto flex h-full max-w-shell items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Brand */}
+    <header
+      className="navbar-island"
+      style={{ willChange: 'transform, opacity' }}
+    >
+      <div
+        className={`flex h-14 w-auto max-w-shell items-center gap-3 rounded-2xl bg-surface/90 px-4 backdrop-blur-xl shadow-[0_8px_28px_-8px_rgb(0,0,0,0.12),0_2px_8px_-4px_rgb(0,0,0,0.06)] border border-line/80 transition-all duration-300 sm:px-6 ${
+          mountedRef.current ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
+      >
+        {/* Brand: clay square mark + wordmark */}
         <Link to={user ? '/dashboard' : '/'} className="flex shrink-0 items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent text-accent-ink">
-            <span className="text-sm font-bold leading-none">T</span>
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent text-accent-ink shadow-[0_4px_12px_-4px_rgb(var(--c-glow)/0.5)]">
+            <Hexagon size={18} weight="bold" className="text-accent-ink" />
           </span>
           <span className="text-[17px] font-semibold tracking-tight sm:inline hidden">{BRAND}</span>
         </Link>
 
-        {/* App links (signed in only) */}
+        {/* Divider for signed-in */}
+        {user && <div className="mx-1 h-5 w-px bg-line/60" />}
+
+        {/* App links (signed in only) — centered */}
         {user && (
           <nav className="flex items-center gap-1" aria-label="Main">
             {navLink('/dashboard', t('nav.dashboard'), ChartLineUp)}
@@ -75,40 +99,52 @@ const Navbar: React.FC = () => {
           </nav>
         )}
 
-        {/* Right cluster */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        {/* Right cluster: controls + user */}
+        <div className="flex items-center gap-1.5">
+          {/* Language */}
           <button
             onClick={() => setLanguage(language === 'en' ? 'fa' : 'en')}
             className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
             title={language === 'en' ? 'فارسی' : 'English'}
             aria-label={t('nav.change_language')}
           >
-            <GlobeHemisphereEast size={18} />
+            <GlobeHemisphereEast size={17} />
           </button>
+
+          {/* Theme */}
           <button
             onClick={() => dispatch(toggleTheme())}
             className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
             aria-label={t('nav.toggle_theme')}
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
+
+          {/* Currency */}
           <button
             onClick={() => dispatch(cycleCurrency())}
             className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
             title={currency === 'dual' ? 'USD + IRR' : currency === 'usd' ? 'USD' : 'IRR'}
             aria-label="Change currency"
           >
-            {currency === 'dual' ? <CurrencyCircleDollar size={18} /> : currency === 'usd' ? <CurrencyCircleDollar size={18} /> : <Coins size={18} />}
+            {currency === 'dual' ? (
+              <CurrencyCircleDollar size={17} weight="fill" />
+            ) : currency === 'usd' ? (
+              <CurrencyCircleDollar size={17} />
+            ) : (
+              <Coins size={17} />
+            )}
           </button>
 
           {user ? (
             <>
+              {/* User pill: avatar initial + name, inline */}
               <Link
                 to="/profile"
-                className="ml-1 hidden items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-inset sm:flex"
+                className="ml-1 flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-inset hover:text-ink"
                 title={t('nav.profile')}
               >
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/15 text-xs font-bold text-accent">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/15 text-xs font-bold text-accent ring-1 ring-accent/20">
                   {user.username.charAt(0).toUpperCase()}
                 </span>
                 <span className="max-w-[110px] truncate text-sm font-medium">{user.username}</span>
@@ -119,15 +155,15 @@ const Navbar: React.FC = () => {
                 aria-label={t('common.logout')}
                 title={t('common.logout')}
               >
-                <SignOut size={18} />
+                <SignOut size={17} />
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="btn-ghost !py-2">
+              <Link to="/login" className="btn-ghost !py-2 !px-4 text-sm">
                 {t('auth.login_btn')}
               </Link>
-              <Link to="/register" className="btn-primary !py-2">
+              <Link to="/register" className="btn-primary !py-2 !px-4 text-sm shadow-[0_6px_18px_-6px_rgb(var(--c-glow)/0.5)]">
                 {t('nav.start_free')}
               </Link>
             </>

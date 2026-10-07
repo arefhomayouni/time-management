@@ -331,7 +331,7 @@ const GroupDetailPage: React.FC = () => {
                       {row && (
                         <div className="num flex justify-between rounded-xl bg-inset px-4 py-3 text-sm">
                           <span className="text-muted">{t('group.owed_summary')}</span>
-                          <span className="font-semibold">{money(row.totalAmount)}</span>
+                          <span className="num font-semibold text-ink">{money(row.totalAmount)}</span>
                           <span className="text-muted">
                             {t('groups.report_table_remaining')} {money(row.remainingAmount)}
                           </span>
@@ -386,22 +386,22 @@ const GroupDetailPage: React.FC = () => {
               { label: t('groups.report_table_paid'), value: money(totals?.paidAmount) },
               { label: t('group.remaining_summary'), value: money(totals?.remainingAmount) },
             ].map((s, i) => (
-              <div key={s.label} className={`px-1 py-4 lg:px-5 ${i % 2 === 1 ? 'ps-4 lg:ps-5' : ''}`}>
+              <div key={s.label} className={`stat-tile lg:px-5 ${i % 2 === 1 ? 'ps-4 lg:ps-5' : ''}`}>
                 <p className="text-xs text-muted">{s.label}</p>
                 {reportLoading ? (
                   <div className="skeleton mt-1.5 h-6 w-20" />
                 ) : (
-                  <p className="num mt-0.5 text-lg font-semibold">{s.value}</p>
+                  <p className="num-display mt-0.5 text-lg font-semibold text-ink">{s.value}</p>
                 )}
               </div>
             ))}
           </div>
 
           {/* Report table */}
-          <section className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <section className="card-deep overflow-hidden">
+            <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
               <h2 className="flex items-center gap-2 font-semibold">
-                <ChartLineUp size={18} className="text-accent" />
+                <ChartLineUp size={18} weight="light" className="text-accent" />
                 {t('groups.report_title')}
               </h2>
               <span className="num text-xs text-muted">
@@ -441,10 +441,10 @@ const GroupDetailPage: React.FC = () => {
                           <span className="block text-xs text-muted">{r.email}</span>
                         </td>
                         <td className="table-cell num">{fmtHours(r.totalHours)}</td>
-                        <td className="table-cell num font-semibold">{money(r.totalAmount)}</td>
+                        <td className="table-cell num font-semibold text-ink">{money(r.totalAmount)}</td>
                         <td className="table-cell num text-muted">{money(r.paidAmount)}</td>
                         <td className="table-cell num">
-                          <span className={r.remainingAmount > 0 ? 'text-accent' : 'text-muted'}>
+                          <span className={r.remainingAmount > 0 ? 'text-accent font-semibold' : 'text-muted'}>
                             {money(r.remainingAmount)}
                           </span>
                         </td>
@@ -473,11 +473,10 @@ const GroupDetailPage: React.FC = () => {
             )}
           </section>
 
-          {/* Payout history */}
-          <section className="card overflow-hidden">
-            <div className="border-b border-line px-5 py-4">
+          {/* Payout history */}            <section className="card-deep overflow-hidden">
+            <div className="border-b border-line/70 px-5 py-4">
               <h2 className="flex items-center gap-2 font-semibold">
-                <Wallet size={18} className="text-accent" />
+                <Wallet size={18} weight="light" className="text-accent" />
                 {t('group.payouts_history')}
               </h2>
             </div>
@@ -496,7 +495,7 @@ const GroupDetailPage: React.FC = () => {
                         {p.notes ? ` · ${p.notes}` : ''}
                       </span>
                     </div>
-                    <span className="num font-semibold text-accent">{money(p.amount)}</span>
+                    <span className="num-display font-semibold text-accent">{money(p.amount)}</span>
                   </li>
                 ))}
               </ul>

@@ -3,57 +3,62 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------
- * Design tokens (rgb triplets so Tailwind alpha modifiers work).
- * One accent family (ember) locked for both modes.
- * Light: cool zinc paper. Dark: near-black ink.
+ * Design tokens — evolved for the redesign.
  *
- * Radius rule: controls 12px, containers 16px, badges pill.
+ * Vibe: premium consumer / agency — warm paper light, OLED dark,
+ * single warm accent (clay/rose) with depth via layered shadows.
+ * Grain texture on body, double-bezel cards, floating island nav.
+ *
+ * Accent: a warm clay tone (#E85D3A light, #F87171 dark) that reads
+ * as premium, not AI-purple. Keeps AA contrast on both modes.
  * ------------------------------------------------------------- */
 :root {
-  --c-bg: 247 247 248;        /* #F7F7F8 */
+  --c-bg: 244 241 237;        /* warm paper #F4F1ED */
   --c-surface: 255 255 255;
-  --c-inset: 240 240 243;     /* inputs, code wells */
-  --c-line: 226 226 230;      /* hairlines */
-  --c-ink: 24 24 27;          /* #18181B zinc-900 */
-  --c-muted: 99 102 113;      /* secondary text, AA on bg */
-  --c-accent: 194 65 12;      /* #C2410C ember, AA on white bg */
-  --c-accent-ink: 255 255 255;/* text on accent: 5.1:1 */
+  --c-inset: 238 235 230;     /* inputs, code wells */
+  --c-line: 212 209 203;      /* hairlines, warmer */
+  --c-ink: 28 26 24;          /* warm near-black */
+  --c-muted: 119 114 108;     /* secondary text */
+  --c-accent: 219 66 20;      /* clay #DB4214, AA on paper */
+  --c-accent-ink: 255 255 255;
   --c-success: 22 128 61;
   --c-warn: 161 98 7;
+  --c-glow: 219 66 20;        /* accent for glows */
 }
 
 .dark {
-  --c-bg: 12 12 13;           /* #0C0C0D */
-  --c-surface: 24 24 27;      /* #18181B */
-  --c-inset: 32 32 36;
-  --c-line: 51 51 58;
-  --c-ink: 244 244 245;       /* zinc-100 */
-  --c-muted: 166 168 178;     /* AA on dark bg */
-  --c-accent: 249 115 22;     /* #F97316 pops on ink */
-  --c-accent-ink: 23 10 2;    /* near-black on bright ember: 6.8:1 */
+  --c-bg: 10 10 11;           /* OLED near-black */
+  --c-surface: 22 22 24;
+  --c-inset: 34 34 37;
+  --c-line: 54 54 58;
+  --c-ink: 245 243 240;
+  --c-muted: 158 156 152;
+  --c-accent: 248 142 121;    /* soft clay pop on dark */
+  --c-accent-ink: 20 12 8;
   --c-success: 74 222 128;
   --c-warn: 251 191 36;
+  --c-glow: 248 142 121;
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-bg text-ink antialiased;
+    @apply bg-bg text-ink antialiased selection:bg-accent/20;
     font-family: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Visible, consistent focus for keyboard users (AA) */
   :focus-visible {
     outline: 2px solid rgb(var(--c-accent));
-    outline-offset: 2px;
-  }
-
-  ::selection {
-    background: rgb(var(--c-accent) / 0.25);
+    outline-offset: 3px;
+    border-radius: 4px;
   }
 
   /* Native controls inherit tokens */
@@ -78,44 +83,58 @@
 }
 
 @layer components {
-  /* Shared control classes - keeps every form field identical */
+  /* ---- Form fields: warm inset, accent ring on focus ---- */
   .field {
     @apply w-full rounded-xl border border-line bg-inset px-3.5 py-2.5 text-sm text-ink
-      placeholder:text-muted/70 transition-colors
-      focus:border-accent focus:outline-none;
+      placeholder:text-muted/70 transition-colors duration-150
+      focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30;
   }
 
   .label {
-    @apply block text-[13px] font-medium text-muted;
+    @apply block text-[13px] font-medium text-muted tracking-tight;
   }
 
+  /* ---- Button base: airtime, spring active ---- */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
-      transition-all duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
+      transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn bg-accent text-accent-ink hover:brightness-110;
+    @apply btn bg-accent text-accent-ink shadow-[0_8px_24px_-10px_rgb(var(--c-glow)/0.45)]
+      hover:brightness-105 hover:shadow-[0_10px_28px_-10px_rgb(var(--c-glow)/0.55)];
   }
 
   .btn-ghost {
-    @apply btn border border-line bg-surface text-ink hover:border-accent/50 hover:text-accent;
+    @apply btn border border-line bg-surface text-ink
+      hover:border-accent/40 hover:text-accent hover:bg-inset;
   }
 
+  /* ---- Double-bezel card: outer shell + inner core ---- */
   .card {
-    @apply rounded-2xl border border-line bg-surface;
+    @apply rounded-2xl bg-surface;
+    box-shadow: 0 1px 0 rgb(var(--c-line)), 0 1px 3px rgba(0,0,0,0.04);
   }
 
+  .card-deep {
+    @apply card;
+    box-shadow: 0 1px 0 rgb(var(--c-line)),
+      0 4px 12px -4px rgba(0,0,0,0.06),
+      0 1px 2px -1px rgba(0,0,0,0.04);
+  }
+
+  /* ---- Pill badges, tighter ---- */
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
   }
 
+  /* ---- Skeleton with warm shimmer ---- */
   .skeleton {
     @apply rounded-xl bg-inset;
     background-image: linear-gradient(
       90deg,
       rgb(var(--c-inset)) 0%,
-      rgb(var(--c-line) / 0.6) 50%,
+      rgb(var(--c-line) / 0.5) 50%,
       rgb(var(--c-inset)) 100%
     );
     background-size: 200% 100%;
@@ -129,11 +148,101 @@
   .table-cell {
     @apply px-4 py-3.5 text-sm;
   }
+
+  /* ---- Navbar island: floating pill, detached from top edge ---- */
+  .navbar-island {
+    @apply fixed top-4 left-1/2 -translate-x-1/2 z-50;
+  }
+
+  /* ---- Stat tile: no card, just hairline separation ---- */
+  .stat-tile {
+    @apply px-1 py-5 lg:px-6;
+  }
 }
 
-/* Tabular numerals everywhere money or hours are shown */
+/* ---------------------------------------------------------------
+ * Grain texture — fixed, pointer-events-none, only on body bg.
+ * ------------------------------------------------------------- */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.018;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+.dark .grain {
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
+/* Placed at root level so it sits behind content but above bg color */
+.app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------
+ * Scrollbar — thin, themed.
+ * ------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-line));
+  border-radius: 999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-muted) / 0.4);
+}
+
+/* ---------------------------------------------------------------
+ * Selection & focus (kept from original).
+ * ------------------------------------------------------------- */
+::selection {
+  background: rgb(var(--c-accent) / 0.2);
+}
+
+/* ---------------------------------------------------------------
+ * Tabular numerals everywhere money or hours are shown.
+ * Add a subtle tracking for display-numbers.
+ * ------------------------------------------------------------- */
 .num {
   font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+}
+
+.num-display {
+  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------
+ * Reveal animation — used for scroll-entry. Heavier than before.
+ * ------------------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

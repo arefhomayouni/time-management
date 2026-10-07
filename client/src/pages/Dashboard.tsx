@@ -171,19 +171,19 @@ const Dashboard: React.FC = () => {
         {stats.map(({ label, value, Icon }, i) => (
           <div
             key={label}
-            className={`flex items-center gap-3.5 px-1 py-5 lg:px-6 ${
+            className={`stat-tile flex items-center gap-3.5 ${
               i < 2 ? 'border-b border-line lg:border-b-0' : ''
             } ${i % 2 === 1 ? 'border-s border-line ps-4 lg:border-s-0 lg:ps-6' : ''}`}
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
-              <Icon size={20} />
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
+              <Icon size={20} weight="light" />
             </span>
             <div className="min-w-0">
               <p className="truncate text-[13px] text-muted">{label}</p>
               {summaryLoading ? (
                 <div className="skeleton mt-1.5 h-6 w-24" />
               ) : (
-                <p className="num text-xl font-semibold tracking-tight">{value}</p>
+                <p className="num-display mt-0.5 text-xl font-semibold tracking-tight text-ink">{value}</p>
               )}
             </div>
           </div>
@@ -192,9 +192,9 @@ const Dashboard: React.FC = () => {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">
         {/* Log form */}
-        <section className="card h-fit p-6">
+        <section className="card-deep h-fit p-6">
           <h2 className="flex items-center gap-2 font-semibold">
-            <PlusCircle size={19} className="text-accent" />
+            <PlusCircle size={19} weight="light" className="text-accent" />
             {t('dashboard.log_time')}
           </h2>
           <Formik
@@ -249,8 +249,8 @@ const Dashboard: React.FC = () => {
         </section>
 
         {/* Entries table */}
-        <section className="card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <section className="card-deep overflow-hidden">
+          <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
             <h2 className="font-semibold">{t('dashboard.history_title')}</h2>
             <span className="num text-xs text-muted">
               {params.startDate} → {params.endDate}
@@ -293,8 +293,7 @@ const Dashboard: React.FC = () => {
                           day: 'numeric',
                         })}
                       </td>
-                      <td className="table-cell num">{fmtHours(log.hours)}</td>
-                      <td className="table-cell num font-semibold text-accent">{money(log.amount)}</td>
+                      <td className="table-cell num">{fmtHours(log.hours)}</td>                        <td className="table-cell num font-semibold text-ink">{money(log.amount)}</td>
                       <td className="table-cell text-muted">
                         {log.group ? t('groups.title') : t('dashboard.personal')}
                       </td>

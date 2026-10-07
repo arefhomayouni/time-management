@@ -54,8 +54,8 @@ const ProfilePage: React.FC = () => {
 
       <div className="mt-8 grid max-w-4xl gap-6 md:grid-cols-[280px_1fr]">
         {/* Identity card */}
-        <section className="card p-6 text-center">
-          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-accent/15 text-3xl font-bold text-accent">
+        <section className="card-deep p-6 text-center">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-accent/10 text-3xl font-bold text-accent shadow-[0_4px_12px_-4px_rgb(var(--c-glow)/0.2)] ring-1 ring-accent/20">
             {user?.username?.charAt(0).toUpperCase()}
           </div>
           <h2 className="mt-4 text-lg font-semibold">{user?.username}</h2>
@@ -78,9 +78,9 @@ const ProfilePage: React.FC = () => {
         </section>
 
         {/* Edit form */}
-        <section className="card p-6 sm:p-8">
+        <section className="card-deep p-6 sm:p-8">
           <h2 className="flex items-center gap-2 font-semibold">
-            <Pencil size={17} className="text-accent" />
+            <Pencil size={17} weight="light" className="text-accent" />
             {t('profile.edit_title')}
           </h2>
 

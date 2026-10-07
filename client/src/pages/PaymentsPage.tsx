@@ -66,11 +66,11 @@ const PaymentsPage: React.FC = () => {
         {isLoading ? (
           <div className="skeleton h-7 w-32" />
         ) : (
-          <span className="num text-2xl font-semibold text-accent">{money(total)}</span>
+          <span className="num-display text-2xl font-semibold text-accent">{money(total)}</span>
         )}
       </div>
 
-      <section className="card mt-8 overflow-hidden">
+      <section className="card-deep mt-8 overflow-hidden">
         {isLoading ? (
           <div className="space-y-3 p-5">
             {[0, 1, 2].map((i) => (
@@ -101,7 +101,7 @@ const PaymentsPage: React.FC = () => {
                       <span className="badge bg-inset uppercase text-muted">{p.paymentMethod}</span>
                     </td>
                     <td className="table-cell text-muted">{p.notes || t('common.no_notes')}</td>
-                    <td className="table-cell num text-end font-semibold text-accent">
+                    <td className="table-cell num text-end font-semibold text-ink">
                       {money(p.amount)}
                     </td>
                   </tr>
