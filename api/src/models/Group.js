@@ -19,6 +19,12 @@ const groupSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Hourly rate for the group is required']
   },
+  // Total money the manager has committed to give for the current period
+  budget: {
+    type: Number,
+    default: 0,
+    min: [0, 'Budget cannot be negative']
+  },
   createdAt: {
     type: Date,
     default: Date.now

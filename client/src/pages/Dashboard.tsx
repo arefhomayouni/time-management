@@ -1,183 +1,332 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { LogOut, Plus, Calendar, TrendingUp, Clock, Users, DollarSign } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
-import apiClient from '../services/api';
+import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import toast from 'react-hot-toast';
+import {
+  PlusCircle,
+  TrendUp,
+  Clock,
+  Hourglass,
+  Trash,
+  Wallet,
+} from '@phosphor-icons/react';
+import { useLanguage } from '../hooks/useLanguage';
+import { useAppSelector } from '../store/hooks';
+import {
+  useGetTimeSummaryQuery,
+  useGetTimeLogsQuery,
+  useAddTimeLogMutation,
+  useDeleteTimeLogMutation,
+  useGetMyGroupsQuery,
+} from '../store/api/apiSlice';
+import { money, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
+
+const EntrySchema = Yup.object().shape({
+  date: Yup.date().typeError('Pick a date').required('Date is required'),
+  hours: Yup.number()
+    .typeError('Enter a number')
+    .min(0.1, 'Minimum 0.1h')
+    .max(24, 'A day has 24 hours')
+    .required('Hours are required'),
+  groupId: Yup.string().nullable(),
+});
+
+type RangeKey = 'this' | 'last' | '30' | 'custom';
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
   const { t } = useLanguage();
-  const navigate = useNavigate();
-  const [logs, setLogs] = useState<any[]>([]);
-  const [earnings, setEarnings] = useState<any>(null);
-  const [timeEntry, setTimeEntry] = useState({ date: '', hours: '', groupId: '' });
-  const [loading, setLoading] = useState(true);
+  const user = useAppSelector((s) => s.auth.user);
+  const [rangeKey, setRangeKey] = useState<RangeKey>('this');
+  const [custom, setCustom] = useState(() => {
+    const now = new Date();
+    return monthRange(now.getFullYear(), now.getMonth() + 1);
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Resolve the active range: presets override custom inputs
+  const range = useMemo(() => {
+    const now = new Date();
+    if (rangeKey === 'this') return monthRange(now.getFullYear(), now.getMonth() + 1);
+    if (rangeKey === 'last') return monthRange(now.getFullYear(), now.getMonth());
+    return {
+      startDate: toDateInput(new Date(now.getTime() - 30 * 86400000)),
+      endDate: toDateInput(now),
+    };
+  }, [rangeKey]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const params = rangeKey === 'custom' ? custom : range;
+
+  const { data: summary, isLoading: summaryLoading } = useGetTimeSummaryQuery(params);
+  const { data: logsData, isLoading: logsLoading } = useGetTimeLogsQuery({
+    ...params,
+    limit: '100',
+    sort: '-date',
+  });
+  const { data: groupsData } = useGetMyGroupsQuery();
+  const [addTimeLog, { isLoading: adding }] = useAddTimeLogMutation();
+  const [deleteTimeLog] = useDeleteTimeLogMutation();
+
+  const groups = groupsData?.data || [];
+  const logs = logsData?.data || [];
+
+  const handleAdd = async (
+    values: { date: string; hours: number | string; groupId: string },
+    { setSubmitting, resetForm }: any
+  ) => {
     try {
-      const logsRes = await apiClient.get('/time/logs');
-      setLogs(logsRes.data.data);
-
-      const now = new Date();
-      const earningsRes = await apiClient.get(`/time/earnings?month=${now.getMonth() + 1}&year=${now.getFullYear()}`);
-      setEarnings(earningsRes.data.data);
-    } catch (err) {
-      console.error('Error fetching dashboard data', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddLog = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await apiClient.post('/time/logs', {
-        ...timeEntry,
-        hours: Number(timeEntry.hours)
-      });
-      setTimeEntry({ date: '', hours: '', groupId: '' });
-      fetchData();
+      await addTimeLog({
+        date: values.date,
+        hours: Number(values.hours),
+        groupId: values.groupId || null,
+      }).unwrap();
+      toast.success(t('dashboard.entry_saved'));
+      resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || t('common.error'));
+      toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-luxury-black text-luxury-gold">{t('common.loading')}</div>;
+  const handleDelete = async (id: string) => {
+    if (!window.confirm(t('dashboard.delete_confirm'))) return;
+    try {
+      await deleteTimeLog(id).unwrap();
+      toast.success(t('dashboard.entry_deleted'));
+    } catch (err: any) {
+      toast.error(err?.data?.message || t('common.error'));
+    }
+  };
+
+  const stats = [
+    { label: t('dashboard.monthly_earnings'), value: money(summary?.totalAmount), Icon: TrendUp },
+    { label: t('dashboard.hours_worked'), value: `${fmtHours(summary?.totalHours)} ${t('common.hours_unit')}`, Icon: Clock },
+    { label: t('dashboard.pending_amount'), value: money(summary?.pendingAmount), Icon: Hourglass },
+    { label: t('dashboard.days_worked'), value: String(summary?.days.length || 0), Icon: Wallet },
+  ];
+
+  const presets: { key: RangeKey; label: string }[] = [
+    { key: 'this', label: t('dashboard.range_this_month') },
+    { key: 'last', label: t('dashboard.range_last_month') },
+    { key: '30', label: t('dashboard.range_30') },
+  ];
 
   return (
-    <div className="min-h-screen bg-luxury-black text-white p-6 md:p-10">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-12">
+    <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      {/* Header + range control */}
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('dashboard.welcome')}, <span className="text-luxury-gold">{user?.username}</span></h1>
-          <p className="text-gray-400">{t('dashboard.overview')}</p>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {t('dashboard.welcome')}, <span className="text-accent">{user?.username}</span>
+          </h1>
+          <p className="mt-1.5 text-muted">{t('dashboard.overview')}</p>
         </div>
-        <div className="flex gap-4">
-          <Link to="/profile" className="px-4 py-2 rounded-lg bg-luxury-darkGray border border-white/10 hover:border-luxury-gold transition-all">{t('nav.profile')}</Link>
-          <button onClick={logout} className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">{t('common.logout')}</button>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('dashboard.range_label')}>
+            {presets.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setRangeKey(p.key as RangeKey)}
+                className={`rounded-xl border px-3 py-2 text-[13px] font-medium transition-colors ${
+                  rangeKey === p.key
+                    ? 'border-accent bg-accent/10 text-accent'
+                    : 'border-line bg-surface text-muted hover:text-ink'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              aria-label={t('common.from')}
+              className="field num !w-auto !py-2"
+              value={params.startDate}
+              onChange={(e) => {
+                setRangeKey('custom');
+                setCustom((c) => ({ ...c, startDate: e.target.value }));
+              }}
+            />
+            <span className="text-muted">→</span>
+            <input
+              type="date"
+              aria-label={t('common.to')}
+              className="field num !w-auto !py-2"
+              value={params.endDate}
+              onChange={(e) => {
+                setRangeKey('custom');
+                setCustom((c) => ({ ...c, endDate: e.target.value }));
+              }}
+            />
+          </div>
         </div>
-      </header>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <motion.div whileHover={{ y: -5 }} className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 flex items-center gap-6">
-          <div className="p-4 rounded-2xl bg-luxury-gold/20 text-luxury-gold"><TrendingUp className="w-8 h-8" /></div>
-          <div>
-            <p className="text-gray-400 text-sm">{t('dashboard.monthly_earnings')}</p>
-            <h3 className="text-3xl font-bold">${earnings?.totalEarnings?.toFixed(2) || '0.00'}</h3>
-          </div>
-        </motion.div>
-
-        <motion.div whileHover={{ y: -5 }} className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 flex items-center gap-6">
-          <div className="p-4 rounded-2xl bg-blue-500/20 text-blue-400"><Clock className="w-8 h-8" /></div>
-          <div>
-            <p className="text-gray-400 text-sm">{t('dashboard.hours_worked')}</p>
-            <h3 className="text-3xl font-bold">{logs.reduce((sum, l) => sum + l.hours, 0).toFixed(1)}h</h3>
-          </div>
-        </motion.div>
-
-        <motion.div whileHover={{ y: -5 }} className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 flex items-center gap-6">
-          <div className="p-4 rounded-2xl bg-purple-500/20 text-purple-400"><Users className="w-8 h-8" /></div>
-          <div>
-            <p className="text-gray-400 text-sm">{t('dashboard.active_groups')}</p>
-            <h3 className="text-3xl font-bold">Ready to Join</h3>
-          </div>
-        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Time Entry Form */}
-        <div className="lg:col-span-1">
-          <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-luxury-gold" /> {t('dashboard.log_time')}
-            </h2>
-            <form onSubmit={handleAddLog} className="space-y-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">{t('dashboard.date')}</label>
-                <input
-                  type="date"
-                  className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all"
-                  value={timeEntry.date}
-                  onChange={(e) => setTimeEntry({...timeEntry, date: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">{t('dashboard.hours')}</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all"
-                  value={timeEntry.hours}
-                  onChange={(e) => setTimeEntry({...timeEntry, hours: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">{t('dashboard.group_id')}</label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all"
-                  value={timeEntry.groupId}
-                  onChange={(e) => setTimeEntry({...timeEntry, groupId: e.target.value})}
-                />
-              </div>
-              <button type="submit" className="w-full py-3 bg-luxury-gold text-luxury-black font-bold rounded-xl hover:bg-luxury-goldLight transition-all duration-300">
-                {t('dashboard.save_btn')}
-              </button>
-            </form>
+      {/* Stat row: separated by hairlines, no card boxes */}
+      <div className="mt-8 grid grid-cols-2 divide-line border-y border-line lg:grid-cols-4 lg:divide-x">
+        {stats.map(({ label, value, Icon }, i) => (
+          <div
+            key={label}
+            className={`flex items-center gap-3.5 px-1 py-5 lg:px-6 ${
+              i < 2 ? 'border-b border-line lg:border-b-0' : ''
+            } ${i % 2 === 1 ? 'border-s border-line ps-4 lg:border-s-0 lg:ps-6' : ''}`}
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
+              <Icon size={20} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] text-muted">{label}</p>
+              {summaryLoading ? (
+                <div className="skeleton mt-1.5 h-6 w-24" />
+              ) : (
+                <p className="num text-xl font-semibold tracking-tight">{value}</p>
+              )}
+            </div>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* History Table */}
-        <div className="lg:col-span-2">
-          <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10 overflow-hidden">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-luxury-gold" /> {t('dashboard.history_title')}
-            </h2>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">
+        {/* Log form */}
+        <section className="card h-fit p-6">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <PlusCircle size={19} className="text-accent" />
+            {t('dashboard.log_time')}
+          </h2>
+          <Formik
+            initialValues={{
+              date: toDateInput(new Date()),
+              hours: '',
+              groupId: '',
+            }}
+            validationSchema={EntrySchema}
+            onSubmit={handleAdd}
+          >
+            {({ isSubmitting }) => (
+              <Form className="mt-5 space-y-4">
+                <div>
+                  <label className="label" htmlFor="entry-date">{t('common.date')}</label>
+                  <Field id="entry-date" type="date" name="date" className="field mt-1.5 num" />
+                  <ErrorMessage name="date" component="p" className="mt-1.5 text-xs text-accent" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="entry-hours">
+                    {t('common.hours')} <span className="text-muted">({t('common.hours_unit')})</span>
+                  </label>
+                  <Field
+                    id="entry-hours"
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    max="24"
+                    name="hours"
+                    className="field mt-1.5 num"
+                    placeholder="8"
+                  />
+                  <ErrorMessage name="hours" component="p" className="mt-1.5 text-xs text-accent" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="entry-group">{t('dashboard.group')}</label>
+                  <Field as="select" id="entry-group" name="groupId" className="field mt-1.5">
+                    <option value="">{t('dashboard.group_personal')}</option>
+                    {groups.map((g: any) => (
+                      <option key={g._id} value={g._id}>
+                        {g.name} · {money(g.hourlyRate)}/{t('common.hr')}
+                      </option>
+                    ))}
+                  </Field>
+                </div>
+                <button type="submit" disabled={isSubmitting || adding} className="btn-primary w-full py-3">
+                  {isSubmitting || adding ? t('common.loading') : t('dashboard.save_btn')}
+                </button>
+              </Form>
+            )}
+          </Formik>
+        </section>
+
+        {/* Entries table */}
+        <section className="card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <h2 className="font-semibold">{t('dashboard.history_title')}</h2>
+            <span className="num text-xs text-muted">
+              {params.startDate} → {params.endDate}
+            </span>
+          </div>
+
+          {logsLoading ? (
+            <div className="space-y-3 p-5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="skeleton h-11 w-full" />
+              ))}
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="px-5 py-14 text-center">
+              <Clock size={34} className="mx-auto text-muted/60" />
+              <p className="mt-3 text-sm text-muted">{t('dashboard.no_logs')}</p>
+              <Link to="/groups" className="btn-ghost mt-5 inline-flex">
+                {t('nav.groups')}
+              </Link>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full min-w-[560px] border-collapse text-left">
                 <thead>
-                  <tr className="text-gray-400 text-sm border-b border-white/10">
-                    <th className="pb-4 font-medium">{t('dashboard.table_date')}</th>
-                    <th className="pb-4 font-medium">{t('dashboard.table_hours')}</th>
-                    <th className="pb-4 font-medium">{t('dashboard.table_amount')}</th>
-                    <th className="pb-4 font-medium">{t('dashboard.table_status')}</th>
+                  <tr className="border-b border-line">
+                    <th className="table-head">{t('dashboard.table_date')}</th>
+                    <th className="table-head">{t('dashboard.table_hours')}</th>
+                    <th className="table-head">{t('dashboard.table_amount')}</th>
+                    <th className="table-head">{t('dashboard.table_group')}</th>
+                    <th className="table-head">{t('dashboard.table_status')}</th>
+                    <th className="table-head text-end">{t('common.actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
-                  {logs.map((log, idx) => (
-                    <tr key={idx} className="hover:bg-white/5 transition-colors">
-                      <td className="py-4 text-sm">{new Date(log.date).toLocaleDateString()}</td>
-                      <td className="py-4 text-sm">{log.hours}h</td>
-                      <td className="py-4 text-sm font-medium text-luxury-gold">${log.amount}</td>
-                      <td className="py-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${log.status === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                          {log.status}
+                <tbody className="divide-y divide-line/60">
+                  {logs.map((log: any) => (
+                    <tr key={log._id} className="transition-colors hover:bg-inset/60">
+                      <td className="table-cell num text-muted">
+                        {new Date(log.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </td>
+                      <td className="table-cell num">{fmtHours(log.hours)}</td>
+                      <td className="table-cell num font-semibold text-accent">{money(log.amount)}</td>
+                      <td className="table-cell text-muted">
+                        {log.group ? t('groups.title') : t('dashboard.personal')}
+                      </td>
+                      <td className="table-cell">
+                        <span
+                          className={`badge ${
+                            log.status === 'paid' ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn'
+                          }`}
+                        >
+                          {log.status === 'paid'
+                            ? t('dashboard.status_paid')
+                            : t('dashboard.status_pending')}
                         </span>
+                      </td>
+                      <td className="table-cell text-end">
+                        <button
+                          onClick={() => handleDelete(log._id)}
+                          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                          aria-label={t('common.delete')}
+                          title={t('common.delete')}
+                        >
+                          <Trash size={16} />
+                        </button>
                       </td>
                     </tr>
                   ))}
-                  {logs.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="py-10 text-center text-gray-500">{t('dashboard.no_logs')}</td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
 

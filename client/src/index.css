@@ -2,33 +2,138 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------
+ * Design tokens (rgb triplets so Tailwind alpha modifiers work).
+ * One accent family (ember) locked for both modes.
+ * Light: cool zinc paper. Dark: near-black ink.
+ *
+ * Radius rule: controls 12px, containers 16px, badges pill.
+ * ------------------------------------------------------------- */
 :root {
-  --luxury-black: #0a0a0a;
-  --luxury-gold: #D4AF37;
-  --luxury-gold-light: #F9E4B7;
-  --luxury-dark-gray: #1a1a1a;
-  --luxury-accent: #C0C0C0;
+  --c-bg: 247 247 248;        /* #F7F7F8 */
+  --c-surface: 255 255 255;
+  --c-inset: 240 240 243;     /* inputs, code wells */
+  --c-line: 226 226 230;      /* hairlines */
+  --c-ink: 24 24 27;          /* #18181B zinc-900 */
+  --c-muted: 99 102 113;      /* secondary text, AA on bg */
+  --c-accent: 194 65 12;      /* #C2410C ember, AA on white bg */
+  --c-accent-ink: 255 255 255;/* text on accent: 5.1:1 */
+  --c-success: 22 128 61;
+  --c-warn: 161 98 7;
 }
 
-body {
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--luxury-black);
-  color: white;
+.dark {
+  --c-bg: 12 12 13;           /* #0C0C0D */
+  --c-surface: 24 24 27;      /* #18181B */
+  --c-inset: 32 32 36;
+  --c-line: 51 51 58;
+  --c-ink: 244 244 245;       /* zinc-100 */
+  --c-muted: 166 168 178;     /* AA on dark bg */
+  --c-accent: 249 115 22;     /* #F97316 pops on ink */
+  --c-accent-ink: 23 10 2;    /* near-black on bright ember: 6.8:1 */
+  --c-success: 74 222 128;
+  --c-warn: 251 191 36;
 }
 
-.luxury-text-gold {
-  color: var(--luxury-gold);
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg text-ink antialiased;
+    font-family: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, consistent focus for keyboard users (AA) */
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-accent));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgb(var(--c-accent) / 0.25);
+  }
+
+  /* Native controls inherit tokens */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(var(--picker-invert, 0));
+    cursor: pointer;
+  }
+  .dark input[type='date']::-webkit-calendar-picker-indicator {
+    --picker-invert: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
-.luxury-bg-gold {
-  background-color: var(--luxury-gold);
+@layer components {
+  /* Shared control classes - keeps every form field identical */
+  .field {
+    @apply w-full rounded-xl border border-line bg-inset px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-muted/70 transition-colors
+      focus:border-accent focus:outline-none;
+  }
+
+  .label {
+    @apply block text-[13px] font-medium text-muted;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+      transition-all duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-accent-ink hover:brightness-110;
+  }
+
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink hover:border-accent/50 hover:text-accent;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
+  }
+
+  .skeleton {
+    @apply rounded-xl bg-inset;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--c-inset)) 0%,
+      rgb(var(--c-line) / 0.6) 50%,
+      rgb(var(--c-inset)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .table-head {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+
+  .table-cell {
+    @apply px-4 py-3.5 text-sm;
+  }
 }
 
-.luxury-border-gold {
-  border-color: var(--luxury-gold);
+/* Tabular numerals everywhere money or hours are shown */
+.num {
+  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }

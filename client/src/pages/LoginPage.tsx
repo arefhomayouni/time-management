@@ -1,78 +1,124 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import apiClient from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import toast from 'react-hot-toast';
+import { Clock } from '@phosphor-icons/react';
+import { useLanguage } from '../hooks/useLanguage';
+import { useLoginMutation } from '../store/api/apiSlice';
+import { useAppDispatch } from '../store/hooks';
+import { setCredentials } from '../store/slices/authSlice';
+
+const LoginSchema = Yup.object().shape({
+  email: Yup.string().email('Enter a valid email').required('Email is required'),
+  password: Yup.string().required('Password is required'),
+});
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const dispatch = useAppDispatch();
   const { t } = useLanguage();
+  const [login, { isLoading }] = useLoginMutation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const from = (location.state as any)?.from || '/dashboard';
+
+  const handleSubmit = async (values: { email: string; password: string }, { setSubmitting }: any) => {
     try {
-      const response = await apiClient.post('/users/login', { email, password });
-      const { token, data } = response.data;
-      login(token, data.user);
-      navigate('/dashboard');
+      const response = await login(values).unwrap();
+      dispatch(setCredentials({ token: response.token, user: response.data.user }));
+      toast.success(t('auth.login_success'));
+      navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.message || t('common.error'));
+      toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-luxury-black flex items-center justify-center px-6">
-      <div className="max-w-md w-full bg-luxury-darkGray p-10 rounded-3xl border border-white/10 shadow-2xl">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-2">{t('auth.login_title')}</h1>
-          <p className="text-gray-400">{t('auth.login_subtitle')}</p>
+    <main className="flex min-h-[calc(100dvh-4rem)] items-center justify-center px-4 pb-16 pt-10">
+      <div className="grid w-full max-w-5xl gap-10 md:grid-cols-2 md:items-center md:gap-16">
+        {/* Left: value copy */}
+        <div className="hidden md:block">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-accent-ink">
+            <Clock size={22} />
+          </div>
+          <h1 className="mt-6 text-3xl font-semibold tracking-tight">{t('auth.login_title')}</h1>
+          <p className="mt-3 max-w-[42ch] text-muted">{t('auth.login_subtitle')}</p>
+          <ul className="mt-8 space-y-3 text-sm text-ink">
+            <li className="flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              {t('home.c1_title')}
+            </li>
+            <li className="flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              {t('home.c4_title')}
+            </li>
+            <li className="flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              {t('home.c5_title')}
+            </li>
+          </ul>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">{t('auth.email')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl text-white focus:border-luxury-gold outline-none transition-all"
-              placeholder="email@example.com"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">{t('auth.password')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl text-white focus:border-//luxury-gold outline-none transition-all"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+        {/* Right: form */}
+        <div className="card w-full max-w-md justify-self-center p-7 sm:p-9">
+          <h2 className="text-2xl font-semibold tracking-tight">{t('auth.login_title')}</h2>
+          <p className="mt-1.5 text-sm text-muted">{t('auth.login_subtitle')}</p>
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full py-4 bg-luxury-gold text-luxury-black font-bold rounded-xl hover:bg-luxury-goldLight transition-all duration-300 transform hover:scale-[1.02]"
+          <Formik
+            initialValues={{ email: '', password: '' }}
+            validationSchema={LoginSchema}
+            onSubmit={handleSubmit}
           >
-            {t('auth.login_btn')}
-          </button>
-        </form>
+            {({ isSubmitting }) => (
+              <Form className="mt-7 space-y-4">
+                <div>
+                  <label className="label" htmlFor="login-email">{t('auth.email')}</label>
+                  <Field
+                    id="login-email"
+                    type="email"
+                    name="email"
+                    className="field mt-1.5"
+                    placeholder="you@team.com"
+                    autoComplete="email"
+                  />
+                  <ErrorMessage name="email" component="p" className="mt-1.5 text-xs text-accent" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="login-password">{t('auth.password')}</label>
+                  <Field
+                    id="login-password"
+                    type="password"
+                    name="password"
+                    className="field mt-1.5"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                  />
+                  <ErrorMessage name="password" component="p" className="mt-1.5 text-xs text-accent" />
+                </div>
 
-        <p className="text-center mt-8 text-gray-400">
-          {t('auth.no_account')} <Link to="/register" className="text-luxury-gold hover:underline">{t('auth.create_link')}</Link>
-        </p>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isLoading}
+                  className="btn-primary w-full py-3"
+                >
+                  {isSubmitting || isLoading ? t('common.loading') : t('auth.login_btn')}
+                </button>
+              </Form>
+            )}
+          </Formik>
+
+          <p className="mt-6 text-sm text-muted">
+            {t('auth.no_account')}{' '}
+            <Link to="/register" className="font-semibold text-accent hover:underline">
+              {t('auth.create_link')}
+            </Link>
+          </p>
+        </div>
       </div>
-    </div>
+    </main>
   );
 };
 

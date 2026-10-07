@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Invitation from '../models/Invitation.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { catchAsync } from 'vanta-api';
@@ -215,7 +216,7 @@ export const getMe = catchAsync(async (req, res, next) => {
  *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const updateMe = catchAsync(async (req, res, next) => {
-  const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+  const user = await User.findByIdAndUpdate(req.user.id, req.body, {
     new: true,
     runValidators: true
   });
@@ -225,5 +226,33 @@ export const updateMe = catchAsync(async (req, res, next) => {
     data: {
       user
     }
+  });
+});
+
+/**
+ * @swagger
+ * /api/users/invitations:
+ *   get:
+ *     summary: Get my pending group invitations
+ *     description: Returns invitations sent to the authenticated user, with group and sender details.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Invitations fetched successfully
+ */
+export const getMyInvitations = catchAsync(async (req, res, next) => {
+  const invitations = await Invitation.find({
+    toUser: req.user.id,
+    status: 'pending'
+  })
+    .populate('group', 'name hourlyRate')
+    .populate('fromUser', 'username')
+    .sort('-createdAt');
+
+  res.status(200).json({
+    success: true,
+    data: { invitations }
   });
 });

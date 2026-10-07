@@ -1,198 +1,509 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Users, UserPlus, FileText, ChevronLeft, DollarSign, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
-import apiClient from '../services/api';
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import toast from 'react-hot-toast';
+import {
+  ArrowLeft,
+  Users,
+  UserPlus,
+  ChartLineUp,
+  Wallet,
+  Gear,
+  CurrencyCircleDollar,
+} from '@phosphor-icons/react';
+import { useLanguage } from '../hooks/useLanguage';
+import { useAppSelector } from '../store/hooks';
+import {
+  useGetGroupDetailsQuery,
+  useGetGroupMembersQuery,
+  useInviteUserMutation,
+  useGetGroupReportQuery,
+  useUpdateGroupMutation,
+  useGetGroupPaymentsQuery,
+  useMakePaymentMutation,
+} from '../store/api/apiSlice';
+import { money, hours as fmtHours, monthRange, shortDate } from '../utils/format';
+
+const InviteSchema = Yup.object().shape({
+  email: Yup.string().email('Enter a valid email').required('Email is required'),
+});
+
+const SettingsSchema = Yup.object().shape({
+  name: Yup.string().min(2, 'Too short').required('Required'),
+  hourlyRate: Yup.number().typeError('Enter a number').min(0, 'Cannot be negative').required('Required'),
+  budget: Yup.number().typeError('Enter a number').min(0, 'Cannot be negative').required('Required'),
+});
+
+const PayoutSchema = Yup.object().shape({
+  userId: Yup.string().required('Pick a member'),
+  amount: Yup.number()
+    .typeError('Enter a number')
+    .positive('Must be greater than 0')
+    .required('Amount is required'),
+  notes: Yup.string().max(300, 'Too long'),
+});
 
 const GroupDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const navigate = useNavigate();
   const { t } = useLanguage();
-  const [group, setGroup] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [report, setReport] = useState<any>(null);
-  const [reportQuery, setReportQuery] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+  const user = useAppSelector((s) => s.auth.user);
 
-  useEffect(() => {
-    fetchGroupData();
-  }, [id]);
+  const now = new Date();
+  const [range, setRange] = useState(() => monthRange(now.getFullYear(), now.getMonth() + 1));
 
-  const fetchGroupData = async () => {
-    setLoading(true);
+  const { data: groupData, isLoading: groupLoading } = useGetGroupDetailsQuery(id!);
+  const { data: membersData, isLoading: membersLoading } = useGetGroupMembersQuery(id!);
+  const { data: reportData, isLoading: reportLoading } = useGetGroupReportQuery({
+    id: id!,
+    ...range,
+  });
+  const { data: payoutsData } = useGetGroupPaymentsQuery({ groupId: id!, ...range });
+
+  const [inviteUser, { isLoading: inviting }] = useInviteUserMutation();
+  const [updateGroup, { isLoading: savingSettings }] = useUpdateGroupMutation();
+  const [makePayment, { isLoading: paying }] = useMakePaymentMutation();
+
+  const group = groupData?.data?.group;
+  const isManager = group && user && group.manager === user._id;
+  const members = membersData?.data?.members || [];
+  const payouts = payoutsData?.data?.payments || [];
+
+
+  if (groupLoading || membersLoading) {
+    return (
+      <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+        <div className="skeleton h-9 w-64" />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr]">
+          <div className="skeleton h-80 w-full" />
+          <div className="skeleton h-80 w-full" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!group) {
+    return (
+      <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+        <div className="rounded-2xl border border-dashed border-line px-6 py-16 text-center">
+          <p className="text-sm text-muted">{t('group.not_found')}</p>
+          <button onClick={() => navigate('/groups')} className="btn-ghost mt-5">
+            <ArrowLeft size={16} />
+            {t('groups.title')}
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const handleInvite = async (values: any, { setSubmitting, resetForm }: any) => {
     try {
-      const groupRes = await apiClient.get(`/groups/${id}`);
-      setGroup(groupRes.data.data);
-
-      const membersRes = await apiClient.get(`/groups/${id}/members`);
-      setMembers(membersRes.data.data.members);
-    } catch (err) {
-      console.error('Error fetching group data', err);
+      await inviteUser({ email: values.email, groupId: id! }).unwrap();
+      toast.success(t('groups.invite_sent'));
+      resetForm();
+    } catch (err: any) {
+      toast.error(err?.data?.message || t('common.error'));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSettings = async (values: any, { setSubmitting }: any) => {
     try {
-      await apiClient.post('/groups/invite', { email: inviteEmail, groupId: id });
-      setInviteEmail('');
-      alert('Invitation sent successfully!');
+      await updateGroup({
+        id: id!,
+        name: values.name,
+        hourlyRate: Number(values.hourlyRate),
+        budget: Number(values.budget),
+      }).unwrap();
+      toast.success(t('group.settings_saved'));
     } catch (err: any) {
-      alert(err.response?.data?.message || t('common.error'));
+      toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const fetchReport = async () => {
+  const handlePayout = async (values: any, { setSubmitting, resetForm }: any) => {
     try {
-      const res = await apiClient.get(`/groups/${id}/report?month=${reportQuery.month}&year=${reportQuery.year}`);
-      setReport(res.data.data);
+      const res = await makePayment({
+        userId: values.userId,
+        amount: Number(values.amount),
+        groupId: id!,
+        startDate: range.startDate,
+        endDate: range.endDate,
+        notes: values.notes || undefined,
+      }).unwrap();
+      toast.success(
+        `${t('group.payout_done')} · ${t('group.payout_settled')} ${res.data.settledLogs}`
+      );
+      if (res.data.leftover > 0) {
+        toast(t('group.payout_leftover') + ' ' + money(res.data.leftover));
+      }
+      resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || t('common.error'));
+      toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-luxury-black text-luxury-gold">{t('common.loading')} Group...</div>;
-  if (!group) return <div className="h-screen w-full flex items-center justify-center bg-luxury-black text-white">Group not found.</div>;
-
-  const isManager = group.manager === user?._id;
+  const totals = reportData?.data?.totals;
+  const rows = reportData?.data?.reports || [];
+  // Payout targets mirror the report so the select never disagrees with the table
+  const payoutTargets =
+    rows.length > 0
+      ? rows.map((r: any) => ({ _id: r.userId, username: r.username }))
+      : members.map((m: any) => ({ _id: m._id, username: m.username }));
 
   return (
-    <div className="min-h-screen bg-luxury-black text-white p-6 md:p-10 pt-24">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-12">
-          <button onClick={() => window.history.back()} className="p-2 rounded-full bg-luxury-darkGray hover:bg-white/10 transition-all">
-            <ChevronLeft className="w-6 h-6" />
+    <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/groups')}
+            className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-surface text-muted transition-colors hover:text-ink"
+            aria-label={t('common.back')}
+          >
+            <ArrowLeft size={17} />
           </button>
-          <h1 className="text-4xl font-bold">{group.name}</h1>
-          <div className="ml-auto px-4 py-1 rounded-full bg-luxury-gold/20 text-luxury-gold text-sm font-bold">
-            ${group.hourlyRate}/hr
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{group.name}</h1>
+            <p className="num mt-1 text-sm text-muted">
+              {money(group.hourlyRate)}/{t('common.hr')}
+              {group.budget > 0 && <> · {t('groups.budget').split('(')[0].trim()} {money(group.budget)}</>}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Members & Management */}
-          <div className="lg:col-span-1 space-y-8">
-            <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <Users className="w-5 h-5 text-luxury-gold" /> {t('groups.members_title')}
-              </h2>
-              <div className="space-y-4">
-                {members.map((m: any) => (
-                  <div key={m._id} className="flex items-center justify-between p-3 rounded-xl bg-luxury-black border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-luxury-gold/20 text-luxury-gold flex items-center justify-center text-xs font-bold">
-                        {m.username.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-medium">{m.username}</span>
-                    </div>
-                    {m._id === group.manager && (
-                      <span className="text-[10px] uppercase font-bold text-gray-500">Manager</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {isManager && (
-              <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10">
-                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-//luxury-gold" /> {t('groups.invite_title')}
-                </h2>
-                <form onSubmit={handleInvite} className="space-y-4">
-                  <input
-                    type="email"
-                    className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all text-white"
-                    placeholder="member@email.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    required
-                  />
-                  <button type="submit" className="w-full py-3 bg-luxury-gold text-luxury-black font-bold rounded-xl hover:bg-luxury-goldLight transition-all">
-                    {t('groups.invite_btn')}
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-
-          {/* Report Section */}
-          <div className="lg:col-span-2">
-            <div className="p-8 rounded-3xl bg-luxury-darkGray border border-white/10">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-luxury-gold" /> {t('groups.report_title')}
-                </h2>
-                <div className="flex gap-3">
-                  <input
-                    type="number"
-                    className="w-20 px-3 py-2 bg-luxury-black border border-white/10 rounded-lg outline-none focus:border-luxury-gold"
-                    value={reportQuery.month}
-                    onChange={(e) => setReportQuery({...reportQuery, month: Number(e.target.value)})}
-                  />
-                  <input
-                    type="number"
-                    className="w-24 px-3 py-2 bg-luxury-black border border-white/10 rounded-lg outline-none focus:border-luxury-gold"
-                    value={reportQuery.year}
-                    onChange={(e) => setReportQuery({...reportQuery, year: Number(e.target.value)})}
-                  />
-                  <button
-                    onClick={fetchReport}
-                    className="px-4 py-2 bg-luxury-gold text-luxury-black font-bold rounded-lg hover:bg-luxury-goldLight transition-all"
-                  >
-                    {t('common.load')}
-                  </button>
-                </div>
-              </div>
-
-              {!report ? (
-                <div className="py-20 text-center border-2 border-dashed border-white/10 rounded-2xl">
-                  <AlertCircle className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-500">Select month/year and click Load to see the report.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="text-gray-400 text-sm border-b border-white/10">
-                      <tr>
-                        <th className="pb-4 font-medium">{t('groups.report_table_member')}</th>
-                        <th className="pb-4 font-medium">{t('groups.report_table_hours')}</th>
-                        <th className="pb-4 font-medium">{t('groups.report_table_owed')}</th>
-                        <th className="pb-4 font-medium">{t('groups.report_table_paid')}</th>
-                        <th className="pb-4 font-medium">{t('groups.report_table_status')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {report.reports.map((r: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-white/5 transition-colors">
-                          <td className="py-4 font-medium">{r.username}</td>
-                          <td className="py-4">{r.totalHours}h</td>
-                          <td className="py-4 text-luxury-gold font-bold">${r.totalAmount}</td>
-                          <td className="py-4">${r.paidAmount}</td>
-                          <td className="py-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              r.status === 'Exact' ? 'bg-green-500/20 text-green-400' :
-                              r.status === 'Overpaid' ? 'bg-blue-500/20 text-blue-400' :
-                              'bg-yellow-500/20 text-yellow-400'
-                            }`}>
-                              {t(`groups.status_${r.status.toLowerCase()}`)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Range control */}
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            aria-label={t('common.from')}
+            className="field num !w-auto !py-2"
+            value={range.startDate}
+            onChange={(e) => setRange((r) => ({ ...r, startDate: e.target.value }))}
+          />
+          <span className="text-muted">→</span>
+          <input
+            type="date"
+            aria-label={t('common.to')}
+            className="field num !w-auto !py-2"
+            value={range.endDate}
+            onChange={(e) => setRange((r) => ({ ...r, endDate: e.target.value }))}
+          />
         </div>
       </div>
-    </div>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">
+        {/* Left column */}
+        <div className="space-y-6">
+          {/* Members */}
+          <section className="card p-6">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <Users size={18} className="text-accent" />
+              {t('groups.members_title')}
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {members.map((m: any) => (
+                <li
+                  key={m._id}
+                  className="flex items-center justify-between rounded-xl bg-inset px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/15 text-xs font-bold text-accent">
+                      {m.username.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="text-sm font-medium">{m.username}</span>
+                  </div>
+                  {m._id === group.manager && (
+                    <span className="badge bg-accent/10 text-accent">{t('groups.role_manager')}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {isManager && (
+              <Formik initialValues={{ email: '' }} validationSchema={InviteSchema} onSubmit={handleInvite}>
+                {({ isSubmitting }) => (
+                  <Form className="mt-5 border-t border-line pt-5">
+                    <label className="label" htmlFor="invite-email">{t('groups.invite_title')}</label>
+                    <Field
+                      id="invite-email"
+                      type="email"
+                      name="email"
+                      className="field mt-1.5"
+                      placeholder="member@team.com"
+                    />
+                    <ErrorMessage name="email" component="p" className="mt-1.5 text-xs text-accent" />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || inviting}
+                      className="btn-primary mt-3 w-full"
+                    >
+                      <UserPlus size={16} />
+                      {isSubmitting || inviting ? t('common.loading') : t('groups.invite_btn')}
+                    </button>
+                  </Form>
+                )}
+              </Formik>
+            )}
+          </section>
+
+          {/* Settings (manager only) */}
+          {isManager && (
+            <section className="card p-6">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Gear size={18} className="text-accent" />
+                {t('group.settings')}
+              </h2>
+              <Formik
+                enableReinitialize
+                initialValues={{
+                  name: group.name,
+                  hourlyRate: group.hourlyRate,
+                  budget: group.budget || 0,
+                }}
+                validationSchema={SettingsSchema}
+                onSubmit={handleSettings}
+              >
+                {({ isSubmitting }) => (
+                  <Form className="mt-4 space-y-4">
+                    <div>
+                      <label className="label" htmlFor="s-name">{t('groups.group_name')}</label>
+                      <Field id="s-name" name="name" className="field mt-1.5" />
+                      <ErrorMessage name="name" component="p" className="mt-1.5 text-xs text-accent" />
+                    </div>
+                    <div>
+                      <label className="label" htmlFor="s-rate">{t('groups.hourly_rate')}</label>
+                      <Field id="s-rate" type="number" step="0.5" name="hourlyRate" className="field mt-1.5 num" />
+                      <ErrorMessage name="hourlyRate" component="p" className="mt-1.5 text-xs text-accent" />
+                    </div>
+                    <div>
+                      <label className="label" htmlFor="s-budget">{t('groups.budget')}</label>
+                      <Field id="s-budget" type="number" name="budget" className="field mt-1.5 num" />
+                      <p className="mt-1.5 text-xs text-muted">{t('groups.budget_hint')}</p>
+                      <ErrorMessage name="budget" component="p" className="mt-1.5 text-xs text-accent" />
+                    </div>
+                    <button type="submit" disabled={isSubmitting || savingSettings} className="btn-primary w-full">
+                      {isSubmitting || savingSettings ? t('common.loading') : t('group.save_settings')}
+                    </button>
+                  </Form>
+                )}
+              </Formik>
+            </section>
+          )}
+
+          {/* Payout form (manager only) */}
+          {isManager && (
+            <section className="card p-6">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <CurrencyCircleDollar size={18} className="text-accent" />
+                {t('group.payout_title')}
+              </h2>
+              <p className="mt-1.5 text-sm text-muted">{t('group.payout_desc')}</p>
+              <Formik
+                initialValues={{ userId: '', amount: '', notes: '' }}
+                validationSchema={PayoutSchema}
+                onSubmit={handlePayout}
+              >
+                {({ isSubmitting, setFieldValue, values }) => {
+                  const row = rows.find((r: any) => r.userId === values.userId);
+                  return (
+                    <Form className="mt-4 space-y-4">
+                      <div>
+                        <label className="label" htmlFor="p-member">{t('group.member')}</label>
+                        <Field as="select" id="p-member" name="userId" className="field mt-1.5">
+                          <option value="">{t('group.select_member')}</option>
+                          {payoutTargets.map((m: any) => (
+                            <option key={m._id} value={m._id}>
+                              {m.username}
+                            </option>
+                          ))}
+                        </Field>
+                        <ErrorMessage name="userId" component="p" className="mt-1.5 text-xs text-accent" />
+                      </div>
+
+                      {row && (
+                        <div className="num flex justify-between rounded-xl bg-inset px-4 py-3 text-sm">
+                          <span className="text-muted">{t('group.owed_summary')}</span>
+                          <span className="font-semibold">{money(row.totalAmount)}</span>
+                          <span className="text-muted">
+                            {t('groups.report_table_remaining')} {money(row.remainingAmount)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="label" htmlFor="p-amount">{t('group.payout_amount')}</label>
+                        <Field
+                          id="p-amount"
+                          type="number"
+                          step="0.01"
+                          name="amount"
+                          className="field mt-1.5 num"
+                          placeholder="0.00"
+                        />
+                        <ErrorMessage name="amount" component="p" className="mt-1.5 text-xs text-accent" />
+                        {row && row.remainingAmount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setFieldValue('amount', row.remainingAmount)}
+                            className="mt-1.5 text-xs font-medium text-accent hover:underline"
+                          >
+                            {money(row.remainingAmount)}
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="p-notes">{t('group.payout_notes')}</label>
+                        <Field id="p-notes" name="notes" className="field mt-1.5" placeholder={t('common.no_notes')} />
+                        <ErrorMessage name="notes" component="p" className="mt-1.5 text-xs text-accent" />
+                      </div>
+                      <button type="submit" disabled={isSubmitting || paying} className="btn-primary w-full">
+                        <Wallet size={16} />
+                        {isSubmitting || paying ? t('common.loading') : t('group.payout_submit')}
+                      </button>
+                    </Form>
+                  );
+                }}
+              </Formik>
+            </section>
+          )}
+        </div>
+
+        {/* Right column: report + payout history */}
+        <div className="space-y-6">
+          {/* Totals strip */}
+          <div className="grid grid-cols-2 divide-line border-y border-line lg:grid-cols-4 lg:divide-x">
+            {[
+              { label: t('groups.report_table_hours'), value: `${fmtHours(totals?.totalHours)} ${t('common.hours_unit')}` },
+              { label: t('group.owed_summary'), value: money(totals?.totalAmount) },
+              { label: t('groups.report_table_paid'), value: money(totals?.paidAmount) },
+              { label: t('group.remaining_summary'), value: money(totals?.remainingAmount) },
+            ].map((s, i) => (
+              <div key={s.label} className={`px-1 py-4 lg:px-5 ${i % 2 === 1 ? 'ps-4 lg:ps-5' : ''}`}>
+                <p className="text-xs text-muted">{s.label}</p>
+                {reportLoading ? (
+                  <div className="skeleton mt-1.5 h-6 w-20" />
+                ) : (
+                  <p className="num mt-0.5 text-lg font-semibold">{s.value}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Report table */}
+          <section className="card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <ChartLineUp size={18} className="text-accent" />
+                {t('groups.report_title')}
+              </h2>
+              <span className="num text-xs text-muted">
+                {range.startDate} → {range.endDate}
+              </span>
+            </div>
+
+            {reportLoading ? (
+              <div className="space-y-3 p-5">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="skeleton h-11 w-full" />
+                ))}
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="px-5 py-14 text-center">
+                <ChartLineUp size={32} className="mx-auto text-muted/60" />
+                <p className="mt-3 text-sm text-muted">{t('group.no_report')}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-line">
+                      <th className="table-head">{t('groups.report_table_member')}</th>
+                      <th className="table-head">{t('groups.report_table_hours')}</th>
+                      <th className="table-head">{t('groups.report_table_owed')}</th>
+                      <th className="table-head">{t('groups.report_table_paid')}</th>
+                      <th className="table-head">{t('groups.report_table_remaining')}</th>
+                      <th className="table-head">{t('groups.report_table_status')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/60">
+                    {rows.map((r: any) => (
+                      <tr key={r.userId} className="transition-colors hover:bg-inset/60">
+                        <td className="table-cell">
+                          <span className="font-medium text-ink">{r.username}</span>
+                          <span className="block text-xs text-muted">{r.email}</span>
+                        </td>
+                        <td className="table-cell num">{fmtHours(r.totalHours)}</td>
+                        <td className="table-cell num font-semibold">{money(r.totalAmount)}</td>
+                        <td className="table-cell num text-muted">{money(r.paidAmount)}</td>
+                        <td className="table-cell num">
+                          <span className={r.remainingAmount > 0 ? 'text-accent' : 'text-muted'}>
+                            {money(r.remainingAmount)}
+                          </span>
+                        </td>
+                        <td className="table-cell">
+                          <span
+                            className={`badge ${
+                              r.status === 'Exact'
+                                ? 'bg-success/15 text-success'
+                                : r.status === 'Overpaid'
+                                ? 'bg-warn/15 text-warn'
+                                : 'bg-accent/10 text-accent'
+                            }`}
+                          >
+                            {r.status === 'Exact'
+                              ? t('groups.status_exact')
+                              : r.status === 'Overpaid'
+                              ? t('groups.status_overpaid')
+                              : t('groups.status_underpaid')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* Payout history */}
+          <section className="card overflow-hidden">
+            <div className="border-b border-line px-5 py-4">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Wallet size={18} className="text-accent" />
+                {t('group.payouts_history')}
+              </h2>
+            </div>
+            {payouts.length === 0 ? (
+              <p className="px-5 py-10 text-center text-sm text-muted">{t('group.no_payouts')}</p>
+            ) : (
+              <ul className="divide-y divide-line/60">
+                {payouts.map((p: any) => (
+                  <li key={p._id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">
+                    <div className="text-sm">
+                      <span className="font-medium text-ink">
+                        {t('group.paid_to')} {p.user?.username || 'N/A'}
+                      </span>
+                      <span className="block text-xs text-muted">
+                        {shortDate(p.date)}
+                        {p.notes ? ` · ${p.notes}` : ''}
+                      </span>
+                    </div>
+                    <span className="num font-semibold text-accent">{money(p.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
+    </main>
   );
 };
 

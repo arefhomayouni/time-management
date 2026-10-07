@@ -5,6 +5,7 @@ import Invitation from '../models/Invitation.js';
 import Payment from '../models/Payment.js';
 import ApiFeatures from 'vanta-api';
 import { catchAsync } from 'vanta-api';
+import mongoose from 'mongoose';
 
 /**
  * @swagger
@@ -40,11 +41,12 @@ import { catchAsync } from 'vanta-api';
  *                     group: { $ref: '#/components/schemas/Group' }
  */
 export const createGroup = catchAsync(async (req, res, next) => {
-  const { name, hourlyRate } = req.body;
+  const { name, hourlyRate, budget } = req.body;
 
   const group = await Group.create({
     name,
     hourlyRate,
+    budget: budget || 0,
     manager: req.user.id,
     members: [req.user.id]
   });
@@ -222,7 +224,8 @@ export const handleInvitation = catchAsync(async (req, res, next) => {
  */
 export const getMyGroups = catchAsync(async (req, res, next) => {
   const features = new ApiFeatures(Group, req.query, req.user.role)
-    .addManualFilters({ members: req.user.id })
+    // members stores ObjectIds, so the filter must be an ObjectId too
+    .addManualFilters({ members: new mongoose.Types.ObjectId(req.user.id) })
     .filter()
     .sort()
     .paginate();
@@ -299,6 +302,105 @@ export const getGroupMembers = catchAsync(async (req, res, next) => {
 
 /**
  * @swagger
+ * /api/groups/{id}:
+ *   get:
+ *     summary: Get group details
+ *     description: Returns the group. Visible to the manager and to members.
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, example: '650c9876543210fedcba4321' }
+ *     responses:
+ *       200:
+ *         description: Group fetched successfully
+ *       403:
+ *         description: Forbidden - not a member of this group
+ *       404:
+ *         description: Group not found
+ *   patch:
+ *     summary: Update group settings (Manager only)
+ *     description: Allows the manager to change the name, hourly rate and the budget (total money committed for the period).
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, example: '650c9876543210fedcba4321' }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string, example: 'Engineering Team' }
+ *               hourlyRate: { type: number, example: 45 }
+ *               budget: { type: number, example: 5000 }
+ *     responses:
+ *       200:
+ *         description: Group updated successfully
+ *       403:
+ *         description: Forbidden - only the group manager can update
+ */
+export const getGroupById = catchAsync(async (req, res, next) => {
+  const group = await Group.findById(req.params.id);
+
+  if (!group) {
+    return res.status(404).json({ success: false, message: 'Group not found' });
+  }
+
+  const isMember = group.manager.toString() === req.user.id ||
+    group.members.some((m) => m.toString() === req.user.id);
+
+  if (!isMember) {
+    return res.status(403).json({
+      success: false,
+      message: 'You are not a member of this group'
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: { group }
+  });
+});
+
+export const updateGroup = catchAsync(async (req, res, next) => {
+  const group = await Group.findById(req.params.id);
+
+  if (!group) {
+    return res.status(404).json({ success: false, message: 'Group not found' });
+  }
+
+  if (group.manager.toString() !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only the group manager can update the group'
+    });
+  }
+
+  const allowed = {};
+  for (const field of ['name', 'hourlyRate', 'budget']) {
+    if (req.body[field] !== undefined) allowed[field] = req.body[field];
+  }
+
+  Object.assign(group, allowed);
+  await group.save();
+
+  res.status(200).json({
+    success: true,
+    data: { group }
+  });
+});
+
+/**
+ * @swagger
  * /api/groups/{id}/report:
  *   get:
  *     summary: Get monthly payment report for group (Manager only)
@@ -356,14 +458,73 @@ export const getGroupMembers = catchAsync(async (req, res, next) => {
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
  */
+/**
+ * @swagger
+ * /api/groups/{id}/report:
+ *   get:
+ *     summary: Get payment report for group (Manager only)
+ *     description: Generates a report for a specific date range showing total hours, amount owed, and amount paid by each member.
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, example: '650c9876543210fedcba4321' }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date, example: '2026-10-01' }
+ *         required: true
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date, example: '2026-10-31' }
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     group: { type: string, example: 'Project Alpha' }
+ *                     startDate: { type: string, example: '2026-10-01' }
+ *                     endDate: { type: string, example: '2026-10-31' }
+ *                     reports:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           userId: { type: string }
+ *                           username: { type: string }
+ *                           totalHours: { type: number }
+ *                           totalAmount: { type: number }
+ *                           paidAmount: { type: number }
+ *                           status: { type: string, enum: [Underpaid, Overpaid, Exact] }
+ *       403:
+ *         description: Forbidden - only managers can access reports
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       400:
+ *         description: Missing parameters
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ * */
 export const getGroupReport = catchAsync(async (req, res, next) => {
-  const { month, year } = req.query;
+  const { startDate, endDate } = req.query;
   const groupId = req.params.id;
 
-  if (!month || !year) {
+  if (!startDate || !endDate) {
     return res.status(400).json({
       success: false,
-      message: 'Please provide month and year'
+      message: 'Please provide startDate and endDate (YYYY-MM-DD)'
     });
   }
 
@@ -375,15 +536,27 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
     });
   }
 
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
 
   const logs = await TimeLog.find({
     group: groupId,
-    date: { $gte: startDate, $lte: endDate }
+    date: { $gte: start, $lte: end }
   });
 
+  // Start from every member so people with zero logs still appear in the report
   const reports = {};
+  group.members.forEach((memberId) => {
+    const userId = memberId.toString();
+    reports[userId] = {
+      userId,
+      totalHours: 0,
+      totalAmount: 0,
+      paidAmount: 0
+    };
+  });
+
   logs.forEach(log => {
     const userId = log.user.toString();
     if (!reports[userId]) {
@@ -404,25 +577,39 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
     const payments = await Payment.find({
       user: report.userId,
       group: groupId,
-      date: { $gte: startDate, $lte: endDate }
+      date: { $gte: start, $lte: end }
     });
 
     const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
 
     return {
       ...report,
-      paidAmount,
+      totalHours: Math.round(report.totalHours * 100) / 100,
+      totalAmount: Math.round(report.totalAmount * 100) / 100,
+      paidAmount: Math.round(paidAmount * 100) / 100,
+      remainingAmount: Math.round((report.totalAmount - paidAmount) * 100) / 100,
       username: user ? user.username : 'Unknown',
+      email: user ? user.email : '',
       status: paidAmount < report.totalAmount ? 'Underpaid' : paidAmount > report.totalAmount ? 'Overpaid' : 'Exact'
     };
   }));
+
+  const totals = reportArray.reduce((acc, r) => ({
+    totalHours: Math.round((acc.totalHours + r.totalHours) * 100) / 100,
+    totalAmount: Math.round((acc.totalAmount + r.totalAmount) * 100) / 100,
+    paidAmount: Math.round((acc.paidAmount + r.paidAmount) * 100) / 100
+  }), { totalHours: 0, totalAmount: 0, paidAmount: 0 });
+  totals.remainingAmount = Math.round((totals.totalAmount - totals.paidAmount) * 100) / 100;
 
   res.status(200).json({
     success: true,
     data: {
       group: group.name,
-      month,
-      year,
+      hourlyRate: group.hourlyRate,
+      budget: group.budget,
+      startDate,
+      endDate,
+      totals,
       reports: reportArray
     }
   });

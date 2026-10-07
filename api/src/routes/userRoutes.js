@@ -10,5 +10,6 @@ router.post('/register', validate(registerSchema), userController.register);
 router.post('/login', validate(loginSchema), userController.login);
 router.get('/me', protect, userController.getMe);
 router.patch('/me', protect, validate(updateMeSchema), userController.updateMe);
+router.get('/invitations', protect, userController.getMyInvitations);
 
 export default router;

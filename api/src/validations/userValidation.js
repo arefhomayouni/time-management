@@ -12,9 +12,10 @@ export const loginSchema = Joi.object({
   password: Joi.string().required()
 });
 
+// Note: role is intentionally not updatable here. Self-promoting to manager
+// would grant payout powers, so role changes must go through an admin flow.
 export const updateMeSchema = Joi.object({
-  username: Joi.string().trim(),
+  username: Joi.string().trim().min(3),
   email: Joi.string().email().lowercase().trim(),
-  personalRate: Joi.number().min(0),
-  role: Joi.string().valid('user', 'manager')
+  personalRate: Joi.number().min(0)
 });

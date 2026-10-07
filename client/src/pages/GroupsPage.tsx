@@ -1,147 +1,254 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Users, Plus, UserPlus, FileText, ChevronRight } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
-import apiClient from '../services/api';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import toast from 'react-hot-toast';
+import { UsersThree, Plus, ArrowRight, EnvelopeSimple, Check, X } from '@phosphor-icons/react';
+import { useLanguage } from '../hooks/useLanguage';
+import { useAppSelector } from '../store/hooks';
+import {
+  useGetMyGroupsQuery,
+  useCreateGroupMutation,
+  useGetMyInvitationsQuery,
+  useHandleInvitationMutation,
+} from '../store/api/apiSlice';
+import { money } from '../utils/format';
+
+const GroupSchema = Yup.object().shape({
+  name: Yup.string().min(2, 'Too short').required('Group name is required'),
+  hourlyRate: Yup.number()
+    .typeError('Enter a number')
+    .min(0, 'Cannot be negative')
+    .required('Rate is required'),
+  budget: Yup.number()
+    .typeError('Enter a number')
+    .min(0, 'Cannot be negative')
+    .nullable(),
+});
 
 const GroupsPage: React.FC = () => {
-  const { user } = useAuth();
   const { t } = useLanguage();
-  const [groups, setGroups] = useState<any[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newGroup, setNewGroup] = useState({ name: '', hourlyRate: '' });
-  const navigate = useNavigate();
+  const user = useAppSelector((s) => s.auth.user);
+  const [showCreate, setShowCreate] = useState(false);
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
+  const { data: groupsData, isLoading } = useGetMyGroupsQuery();
+  const { data: invData } = useGetMyInvitationsQuery();
+  const [createGroup, { isLoading: creating }] = useCreateGroupMutation();
+  const [handleInvitation] = useHandleInvitationMutation();
 
-  const fetchGroups = async () => {
+  const groups = groupsData?.data || [];
+  const invitations = invData?.data?.invitations || [];
+
+  const handleCreate = async (values: any, { setSubmitting, resetForm }: any) => {
     try {
-      const res = await apiClient.get('/groups/my-groups');
-      setGroups(res.data.data);
-    } catch (err) {
-      console.error('Error fetching groups', err);
-    }
-  };
-
-  const handleCreateGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await apiClient.post('/groups', {
-        name: newGroup.name,
-        hourlyRate: Number(newGroup.hourlyRate),
-      });
-      setShowCreateModal(false);
-      setNewGroup({ name: '', hourlyRate: '' });
-      fetchGroups();
+      await createGroup({
+        name: values.name,
+        hourlyRate: Number(values.hourlyRate),
+        budget: values.budget ? Number(values.budget) : 0,
+      }).unwrap();
+      toast.success(t('groups.group_created'));
+      resetForm();
+      setShowCreate(false);
     } catch (err: any) {
-      alert(err.response?.data?.message || t('common.error'));
+      toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const respondInvite = async (invitationId: string, status: 'accepted' | 'declined') => {
+    try {
+      await handleInvitation({ invitationId, status }).unwrap();
+      toast.success(status === 'accepted' ? t('groups.inv_accepted') : t('groups.inv_declined'));
+    } catch (err: any) {
+      toast.error(err?.data?.message || t('common.error'));
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+        <div className="skeleton h-9 w-48" />
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton h-44 w-full" />
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-luxury-black text-white p-6 md:p-10 pt-24">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">{t('groups.title')}</h1>
-            <p className="text-gray-400">{t('groups.subtitle')}</p>
-          </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-luxury-gold text-luxury-black font-bold rounded-xl hover:bg-luxury-goldLight transition-all flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" /> {t('groups.create_btn')}
-          </button>
+    <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('groups.title')}</h1>
+          <p className="mt-1.5 text-muted">{t('groups.subtitle')}</p>
         </div>
+        <button onClick={() => setShowCreate(true)} className="btn-primary px-5 py-2.5">
+          <Plus size={17} />
+          {t('groups.create_btn')}
+        </button>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {groups.map((group) => (
-            <motion.div
-              key={group._id}
-              whileHover={{ y: -5 }}
-              className="p-6 rounded-3xl bg-luxury-darkGray border border-white/10 hover:border-luxury-gold/50 transition-all group"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="p-3 rounded-2xl bg-luxury-gold/10 text-luxury-gold">
-                  <Users className="w-6 h-6" />
+      {/* Invitations inbox */}
+      {invitations.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted">
+            <EnvelopeSimple size={16} className="text-accent" />
+            {t('groups.invitations')}
+          </h2>
+          <div className="mt-3 space-y-2">
+            {invitations.map((inv: any) => (
+              <div
+                key={inv._id}
+                className="card flex flex-wrap items-center justify-between gap-3 p-4"
+              >
+                <div className="text-sm">
+                  <span className="font-semibold text-ink">{inv.group?.name}</span>
+                  <span className="text-muted">
+                    {' '}
+                    · {t('groups.hourly_rate')} {money(inv.group?.hourlyRate)} · {t('nav.logged_in_as')}{' '}
+                    {inv.fromUser?.username}
+                  </span>
                 </div>
-                <span className="text-xs font-bold px-2 py-1 rounded-full bg-white/5 text-gray-400 border border-white/10">
-                  {group.manager === user?._id ? 'Manager' : 'Member'}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => respondInvite(inv._id, 'accepted')}
+                    className="btn-primary !px-3 !py-1.5 !text-xs"
+                  >
+                    <Check size={14} />
+                    {t('groups.accept')}
+                  </button>
+                  <button
+                    onClick={() => respondInvite(inv._id, 'declined')}
+                    className="btn-ghost !px-3 !py-1.5 !text-xs"
+                  >
+                    <X size={14} />
+                    {t('groups.decline')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Group grid */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {groups.map((group: any) => {
+          const isManager = group.manager === user?._id;
+          return (
+            <article key={group._id} className="card flex flex-col p-6 transition-colors hover:border-accent/40">
+              <div className="flex items-start justify-between gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
+                  <UsersThree size={20} />
+                </span>
+                <span
+                  className={`badge ${
+                    isManager ? 'bg-accent/10 text-accent' : 'bg-inset text-muted'
+                  }`}
+                >
+                  {isManager ? t('groups.role_manager') : t('groups.role_member')}
                 </span>
               </div>
-              <h3 className="text-2xl font-bold mb-2">{group.name}</h3>
-              <p className="text-gray-400 mb-6">{t('groups.hourly_rate')} <span className="text-luxury-gold font-bold">${group.hourlyRate}</span></p>
+              <h3 className="mt-4 text-lg font-semibold text-ink">{group.name}</h3>
+              <dl className="num mt-3 space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-muted">{t('groups.hourly_rate')}</dt>
+                  <dd className="font-semibold">{money(group.hourlyRate)}</dd>
+                </div>
+                {group.budget > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted">{t('groups.budget').split('(')[0].trim()}</dt>
+                    <dd className="font-semibold">{money(group.budget)}</dd>
+                  </div>
+                )}
+              </dl>
               <Link
                 to={`/groups/${group._id}`}
-                className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center block font-medium transition-all flex items-center justify-center gap-2"
+                className="btn-ghost mt-5 w-full"
               >
-                {t('groups.view_details')} <ChevronRight className="w-4 h-4" />
+                {t('groups.view_details')}
+                <ArrowRight size={15} />
               </Link>
-            </motion.div>
-          ))}
-          {groups.length === 0 && (
-            <div className="col-span-full py-20 text-center">
-              <p className="text-gray-500 text-lg">{t('groups.no_groups')}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Create Group Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative w-full max-w-md p-8 rounded-3xl bg-luxury-darkGray border border-white/10 shadow-2xl"
-            >
-              <h2 className="text-2xl font-bold mb-6">{t('groups.create_btn')}</h2>
-              <form onSubmit={handleCreateGroup} className="space-y-6">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t('groups.group_name')}</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all text-white"
-                    value={newGroup.name}
-                    onChange={(e) => setNewGroup({...newGroup, name: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t('groups.hourly_rate')}</label>
-                  <input
-                    type="number"
-                    className="w-full px-4 py-3 bg-luxury-black border border-white/10 rounded-xl outline-none focus:border-luxury-gold transition-all text-white"
-                    value={newGroup.hourlyRate}
-                    onChange={(e) => setNewGroup({...newGroup, hourlyRate: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 rounded-xl bg-luxury-gold text-luxury-black font-bold hover:bg-luxury-goldLight transition-all"
-                  >
-                    {t('common.confirm')}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
+            </article>
+          );
+        })}
       </div>
-    </div>
+
+      {groups.length === 0 && invitations.length === 0 && (
+        <div className="mt-10 rounded-2xl border border-dashed border-line px-6 py-16 text-center">
+          <UsersThree size={36} className="mx-auto text-muted/60" />
+          <p className="mt-4 text-sm text-muted">{t('groups.no_groups')}</p>
+          <button onClick={() => setShowCreate(true)} className="btn-primary mt-5">
+            <Plus size={16} />
+            {t('groups.create_btn')}
+          </button>
+        </div>
+      )}
+
+      {/* Create modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowCreate(false)}
+          />
+          <div className="card relative w-full max-w-md p-7">
+            <h2 className="text-xl font-semibold tracking-tight">{t('groups.create_title')}</h2>
+            <Formik
+              initialValues={{ name: '', hourlyRate: '', budget: '' }}
+              validationSchema={GroupSchema}
+              onSubmit={handleCreate}
+            >
+              {({ isSubmitting }) => (
+                <Form className="mt-5 space-y-4">
+                  <div>
+                    <label className="label" htmlFor="g-name">{t('groups.group_name')}</label>
+                    <Field id="g-name" name="name" className="field mt-1.5" placeholder="Nightshift Crew" />
+                    <ErrorMessage name="name" component="p" className="mt-1.5 text-xs text-accent" />
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="g-rate">{t('groups.hourly_rate')}</label>
+                    <Field
+                      id="g-rate"
+                      type="number"
+                      step="0.5"
+                      name="hourlyRate"
+                      className="field mt-1.5 num"
+                      placeholder="45"
+                    />
+                    <p className="mt-1.5 text-xs text-muted">{t('groups.rate_hint')}</p>
+                    <ErrorMessage name="hourlyRate" component="p" className="mt-1.5 text-xs text-accent" />
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="g-budget">{t('groups.budget')}</label>
+                    <Field
+                      id="g-budget"
+                      type="number"
+                      name="budget"
+                      className="field mt-1.5 num"
+                      placeholder="5000"
+                    />
+                    <p className="mt-1.5 text-xs text-muted">{t('groups.budget_hint')}</p>
+                    <ErrorMessage name="budget" component="p" className="mt-1.5 text-xs text-accent" />
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={() => setShowCreate(false)} className="btn-ghost flex-1">
+                      {t('common.cancel')}
+                    </button>
+                    <button type="submit" disabled={isSubmitting || creating} className="btn-primary flex-1">
+                      {isSubmitting || creating ? t('common.loading') : t('common.confirm')}
+                    </button>
+                  </div>
+                </Form>
+              )}
+            </Formik>
+          </div>
+        </div>
+      )}
+    </main>
   );
 };
 

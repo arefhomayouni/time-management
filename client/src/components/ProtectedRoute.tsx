@@ -1,19 +1,31 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAppSelector } from '../store/hooks';
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { token, isLoading } = useAuth();
+/**
+ * Forces sign-in for every app route: no token -> /login,
+ * carrying the intended destination so login can send you back.
+ */
+export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = useAppSelector((state) => state.auth.token);
+  const location = useLocation();
 
-  if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-luxury-black text-luxury-gold">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-luxury-gold"></div>
-      </div>
-    );
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
+  return <>{children}</>;
+};
 
-  return token ? <>{children}</> : <Navigate to="/login" />;
+/**
+ * Reverse guard: signed-in users are bounced off /login and /register
+ * straight to their dashboard.
+ */
+export const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = useAppSelector((state) => state.auth.token);
+  if (token) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
