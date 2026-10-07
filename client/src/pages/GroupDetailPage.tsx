@@ -24,6 +24,7 @@ import {
   useMakePaymentMutation,
 } from '../store/api/apiSlice';
 import { useMoney, hours as fmtHours, monthRange, shortDate } from '../utils/format';
+import JalaliDateRangePicker from '../components/common/JalaliDateRangePicker';
 
 const InviteSchema = Yup.object().shape({
   email: Yup.string().email('Enter a valid email').required('Email is required'),
@@ -180,23 +181,11 @@ const GroupDetailPage: React.FC = () => {
         </div>
 
         {/* Range control */}
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            aria-label={t('common.from')}
-            className="field num !w-auto !py-2"
-            value={range.startDate}
-            onChange={(e) => setRange((r) => ({ ...r, startDate: e.target.value }))}
-          />
-          <span className="text-muted">→</span>
-          <input
-            type="date"
-            aria-label={t('common.to')}
-            className="field num !w-auto !py-2"
-            value={range.endDate}
-            onChange={(e) => setRange((r) => ({ ...r, endDate: e.target.value }))}
-          />
-        </div>
+        <JalaliDateRangePicker
+          value={{ startDate: range.startDate, endDate: range.endDate }}
+          onChange={(range) => setRange({ ...range })}
+          label={t('group.report_range')}
+        />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">

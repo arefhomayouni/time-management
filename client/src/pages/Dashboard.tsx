@@ -21,6 +21,7 @@ import {
   useGetMyGroupsQuery,
 } from '../store/api/apiSlice';
 import { useMoney, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
+import JalaliDateInput from '../components/common/JalaliDateInput';
 
 const EntrySchema = Yup.object().shape({
   date: Yup.date().typeError('Pick a date').required('Date is required'),
@@ -140,28 +141,28 @@ const Dashboard: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              aria-label={t('common.from')}
-              className="field num !w-auto !py-2"
+          <div className="flex flex-col gap-2">
+            <JalaliDateInput
+              label={t('common.date')}
               value={params.startDate}
-              onChange={(e) => {
+              onChange={(iso) => {
                 setRangeKey('custom');
-                setCustom((c) => ({ ...c, startDate: e.target.value }));
+                setCustom((c) => ({ ...c, startDate: iso }));
               }}
+              className="!w-full"
             />
-            <span className="text-muted">→</span>
-            <input
-              type="date"
-              aria-label={t('common.to')}
-              className="field num !w-auto !py-2"
-              value={params.endDate}
-              onChange={(e) => {
-                setRangeKey('custom');
-                setCustom((c) => ({ ...c, endDate: e.target.value }));
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <span className="text-muted text-xs">→</span>
+              <JalaliDateInput
+                label={t('common.to')}
+                value={params.endDate}
+                onChange={(iso) => {
+                  setRangeKey('custom');
+                  setCustom((c) => ({ ...c, endDate: iso }));
+                }}
+                className="!w-full"
+              />
+            </div>
           </div>
         </div>
       </div>

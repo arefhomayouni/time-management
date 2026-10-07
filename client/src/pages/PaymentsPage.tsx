@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import { Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useGetMyPaymentsQuery } from '../store/api/apiSlice';
-import { useMoney, shortDate, monthRange, toDateInput } from '../utils/format';
+import { useMoney, shortDate, toDateInput } from '../utils/format';
+import JalaliDateRangePicker from '../components/common/JalaliDateRangePicker';
 
 const PaymentsPage: React.FC = () => {
   const { t } = useLanguage();
@@ -25,7 +26,6 @@ const PaymentsPage: React.FC = () => {
 
   const payments = data?.data?.payments || [];
   const total = data?.data?.total ?? 0;
-  const thisMonth = monthRange(now.getFullYear(), now.getMonth() + 1);
 
   return (
     <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
@@ -35,29 +35,11 @@ const PaymentsPage: React.FC = () => {
           <p className="mt-1.5 text-muted">{t('payments.subtitle')}</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setRange(thisMonth)}
-            className="rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-ink"
-          >
-            {t('dashboard.range_this_month')}
-          </button>
-          <input
-            type="date"
-            aria-label={t('common.from')}
-            className="field num !w-auto !py-2"
-            value={range.startDate}
-            onChange={(e) => setRange((r) => ({ ...r, startDate: e.target.value }))}
-          />
-          <span className="text-muted">→</span>
-          <input
-            type="date"
-            aria-label={t('common.to')}
-            className="field num !w-auto !py-2"
-            value={range.endDate}
-            onChange={(e) => setRange((r) => ({ ...r, endDate: e.target.value }))}
-          />
-        </div>
+        <JalaliDateRangePicker
+          value={{ startDate: range.startDate, endDate: range.endDate }}
+          onChange={(range) => setRange({ ...range })}
+          className="!w-full"
+        />
       </div>
 
       {/* Total strip */}

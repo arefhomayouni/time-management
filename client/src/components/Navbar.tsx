@@ -11,6 +11,8 @@ import {
   CurrencyCircleDollar,
   Coins,
   Hexagon,
+  ArrowRight,
+  EnvelopeSimple,
 } from '@phosphor-icons/react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
@@ -96,6 +98,9 @@ const Navbar: React.FC = () => {
             {navLink('/dashboard', t('nav.dashboard'), ChartLineUp)}
             {navLink('/groups', t('nav.groups'), UsersThree)}
             {navLink('/payments', t('nav.payments'), Wallet)}
+            {navLink('/about', t('nav.about'), Hexagon)}
+            {navLink('/how-to', t('nav.how_to'), ArrowRight)}
+            {navLink('/contact', t('nav.contact'), EnvelopeSimple)}
           </nav>
         )}
 

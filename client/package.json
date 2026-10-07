@@ -20,6 +20,7 @@
     "dotenv": "^18.0.5",
     "formik": "^2.4.9",
     "framer-motion": "^14.0.0",
+    "jalaali-js": "^2.0.1",
     "lucide-react": "^1.52.0",
     "query": "^0.2.0",
     "react": "^19.3.0",

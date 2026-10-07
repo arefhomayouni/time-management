@@ -13,31 +13,65 @@
  * as premium, not AI-purple. Keeps AA contrast on both modes.
  * ------------------------------------------------------------- */
 :root {
-  --c-bg: 244 241 237;        /* warm paper #F4F1ED */
-  --c-surface: 255 255 255;
-  --c-inset: 238 235 230;     /* inputs, code wells */
-  --c-line: 212 209 203;      /* hairlines, warmer */
-  --c-ink: 28 26 24;          /* warm near-black */
-  --c-muted: 119 114 108;     /* secondary text */
-  --c-accent: 219 66 20;      /* clay #DB4214, AA on paper */
+  /* Primary palette — warm paper, clay accent */
+  --c-bg: 240 235 228;        /* warm paper, less white #F0EBE4 */
+  --c-surface: 250 246 240;  /* warm ivory surface */
+  --c-inset: 235 230 222;    /* inputs, code wells */
+  --c-line: 205 200 192;     /* hairlines */
+  --c-ink: 30 27 24;         /* warm near-black */
+  --c-muted: 120 115 108;    /* secondary text */
+
+  /* Accent family */
+  --c-accent: 219 66 20;     /* clay #DB4214 - primary CTA */
   --c-accent-ink: 255 255 255;
+  --c-accent-soft: 252 230 220;  /* light accent bg */
+  --c-accent-line: 252 230 220;
+
+  /* Secondary accent - deep teal for contrast */
+  --c-secondary: 20 100 90;  /* deep teal */
+  --c-secondary-ink: 255 255 255;
+
+  /* Status */
   --c-success: 22 128 61;
   --c-warn: 161 98 7;
-  --c-glow: 219 66 20;        /* accent for glows */
+  --c-error: 180 40 30;
+
+  /* Glows */
+  --c-glow: 219 66 20;
+  --c-glow-secondary: 40 140 120;
+
+  /* Tinted surfaces for variety */
+  --c-surface-warm: 252 245 235;
+  --c-surface-cool: 235 242 245;
+  --c-surface-muted: 240 238 232;
 }
 
 .dark {
-  --c-bg: 10 10 11;           /* OLED near-black */
-  --c-surface: 22 22 24;
-  --c-inset: 34 34 37;
-  --c-line: 54 54 58;
+  --c-bg: 8 8 10;            /* OLED near-black */
+  --c-surface: 20 20 23;
+  --c-inset: 32 32 36;
+  --c-line: 52 52 57;
   --c-ink: 245 243 240;
-  --c-muted: 158 156 152;
-  --c-accent: 248 142 121;    /* soft clay pop on dark */
+  --c-muted: 156 154 150;
+
+  --c-accent: 248 142 121;   /* soft clay pop */
   --c-accent-ink: 20 12 8;
-  --c-success: 74 222 128;
+  --c-accent-soft: 40 20 15;
+  --c-accent-line: 60 30 20;
+
+  --c-secondary: 80 180 160;  /* teal pop on dark */
+  --c-secondary-ink: 10 30 25;
+
+  --c-success: 80 220 140;
   --c-warn: 251 191 36;
+  --c-error: 240 100 80;
+
   --c-glow: 248 142 121;
+  --c-glow-secondary: 80 180 160;
+
+  --c-surface-warm: 25 22 20;
+  --c-surface-cool: 18 22 28;
+  --c-surface-muted: 22 22 25;
 }
 
 @layer base {
@@ -121,6 +155,33 @@
     box-shadow: 0 1px 0 rgb(var(--c-line)),
       0 4px 12px -4px rgba(0,0,0,0.06),
       0 1px 2px -1px rgba(0,0,0,0.04);
+  }
+
+  .card-warm {
+    @apply card-deep;
+    background: rgb(var(--c-surface-warm));
+  }
+
+  .card-cool {
+    @apply card-deep;
+    background: rgb(var(--c-surface-cool));
+  }
+
+  .card-muted {
+    @apply card-deep;
+    background: rgb(var(--c-surface-muted));
+  }
+
+  .card-accent-soft {
+    @apply card;
+    background: rgb(var(--c-accent-soft));
+    border-color: rgb(var(--c-accent-line));
+  }
+
+  .card-secondary {
+    @apply card;
+    background: rgb(var(--c-surface-cool));
+    border-color: rgb(var(--c-secondary) / 0.3);
   }
 
   /* ---- Pill badges, tighter ---- */
