@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAppSelector } from './store/hooks';
 import { useLanguage } from './hooks/useLanguage';
 import Navbar from './components/Navbar';
+import CalendarChooser from './components/common/CalendarChooser';
 import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -44,6 +45,7 @@ const AppRoutes: React.FC = () => {
       <ScrollToTop />
       <ThemeSync />
       <Navbar />
+      <CalendarChooser />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

@@ -1,11 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { storage } from '../storage';
 
+export type RateCurrency = 'usd' | 'irr';
+
 export interface User {
   _id: string;
   username: string;
   email: string;
   personalRate: number;
+  /** Which currency the user typed their personalRate in. Defaults to 'usd'. */
+  personalRateCurrency: RateCurrency;
   role: 'user' | 'manager';
   createdAt?: string;
 }

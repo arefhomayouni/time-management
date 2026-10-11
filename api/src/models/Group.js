@@ -19,6 +19,11 @@ const groupSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Hourly rate for the group is required']
   },
+  hourlyRateCurrency: {
+    type: String,
+    enum: ['usd', 'irr'],
+    default: 'usd'
+  },
   // Total money the manager has committed to give for the current period
   budget: {
     type: Number,

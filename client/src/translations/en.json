@@ -23,7 +23,8 @@
     "status": "Status",
     "no_notes": "No notes",
     "actions": "Actions",
-    "empty": "Nothing here yet"
+    "empty": "Nothing here yet",
+    "close": "Close"
   },
   "auth": {
     "login_title": "Welcome back",
@@ -33,8 +34,8 @@
     "username": "Username",
     "email": "Email address",
     "password": "Password",
-    "personalRate": "Your hourly rate (USD)",
-    "rate_hint": "Used to price your personal time entries. You can change it later.",
+    "personalRate": "Your hourly rate",
+    "rate_hint": "Used to price your personal time entries. You can change it later. Pick the unit you want to type in.",
     "login_btn": "Sign in",
     "register_btn": "Create account",
     "no_account": "No account yet?",
@@ -222,12 +223,12 @@
     "title": "About TimeLuxe",
     "subtitle": "A time tracking and payment platform built for teams that bill by the hour.",
     "mission_title": "Our mission",
-    "mission": "We believe time tracking should be honest, simple, and useful. Not a surveillance tool — a shared ledger that helps teams understand where the hours go and settle pay without friction. Every feature exists to make that ledger clear for everyone who touches it.",
+    "mission": "We believe time tracking should be honest, simple, and useful. Not a surveillance tool - a shared ledger that helps teams understand where the hours go and settle pay without friction. Every feature exists to make that ledger clear for everyone who touches it.",
     "values_title": "What we build around",
     "value1_title": "Transparency first",
     "value1_desc": "Every number on the report is traceable to a specific day and entry. No black boxes, no hidden calculations.",
     "value2_title": "Date range freedom",
-    "value2_desc": "Filter by any date range — a single day, a week, a month, or a custom span. Reports and payments follow the range you choose.",
+    "value2_desc": "Filter by any date range - a single day, a week, a month, or a custom span. Reports and payments follow the range you choose.",
     "value3_title": "Pay what is owed",
     "value3_desc": "Payouts settle the oldest entries first. Overpaying shows up immediately so nothing gets buried or forgotten.",
     "value4_title": "Two roles, one ledger",
@@ -247,7 +248,7 @@
     "team3_role": "Support & partnerships",
     "team3_bio": "Talks to every team that adopts TimeLuxe, learns what breaks in the real world, and turns that into better defaults.",
     "cta_title": "Ready to try it with your team?",
-    "cta_sub": "Create a free account, invite your team, and log your first day — no card, no setup fee, no commitment.",
+    "cta_sub": "Create a free account, invite your team, and log your first day - no card, no setup fee, no commitment.",
     "contact_btn": "Get in touch"
   },
   "howto": {
@@ -257,7 +258,7 @@
       {
         "num": "01",
         "title": "Create your account",
-        "desc": "Sign up with your email. Set your personal hourly rate — this is what your personal time entries are worth. You can change it anytime from your profile."
+        "desc": "Sign up with your email. Set your personal hourly rate - this is what your personal time entries are worth. You can change it anytime from your profile."
       },
       {
         "num": "02",
@@ -272,16 +273,16 @@
       {
         "num": "04",
         "title": "Open the report and pay",
-        "desc": "At any point, open a group report for a date range. You see every member, how many hours they logged, how much they are owed, and how much has already been paid. Managers record payouts directly from this view — partial or full."
+        "desc": "At any point, open a group report for a date range. You see every member, how many hours they logged, how much they are owed, and how much has already been paid. Managers record payouts directly from this view - partial or full."
       }
     ],
     "note_title": "A few things worth knowing",
     "note1": "Your personal rate only affects entries you log as personal. Group entries always use the group rate set by the manager.",
     "note2": "Payments are tied to a date range, not to a single day. That way a payout can cover a full week, a month, or any span the manager chooses.",
-    "note3": "Every payout record stays in the history. Nothing is overwritten — the report always shows what changed and when.",
+    "note3": "Every payout record stays in the history. Nothing is overwritten - the report always shows what changed and when.",
     "faq_title": "Frequently asked",
     "faq1_q": "Can I use TimeLuxe for more than one team?",
-    "faq1_a": "Yes. You can be a member of several groups at once — for example a night shift crew and a weekend project team. Each group has its own rate and its own report.",
+    "faq1_a": "Yes. You can be a member of several groups at once - for example a night shift crew and a weekend project team. Each group has its own rate and its own report.",
     "faq2_q": "What happens if I overpay a member?",
     "faq2_a": "The report marks the member as overpaid and shows how much extra was paid. The overpayment is visible in the payout history and the report summary, so it is easy to catch and correct.",
     "faq3_q": "Do I need to log every single day?",
@@ -292,6 +293,18 @@
     "faq5_a": "Your account is yours. Group managers see the members and reports for the groups they manage. Payments and payout history are scoped to the group. Nothing is shared publicly.",
     "cta_title": "Start with a single day",
     "cta_sub": "The fastest way to understand TimeLuxe is to log one day and open the report. Everything else builds on that."
+  },
+  "calendar": {
+    "eyebrow": "Calendar",
+    "title": "Which calendar do you want?",
+    "subtitle": "You will use it to enter dates and to read them anywhere in the app. You can switch anytime from the navbar.",
+    "jalali": "Persian (Jalali)",
+    "jalali_hint": "Solar calendar used in Iran and Afghanistan.",
+    "gregorian": "Gregorian",
+    "gregorian_hint": "International calendar used most of the world.",
+    "choose": "Choose this calendar",
+    "selected": "Currently selected",
+    "later": "Decide later"
   },
   "contact": {
     "title": "Get in touch",
@@ -305,7 +318,7 @@
     "form_email": "Your email",
     "form_message": "Message",
     "form_send": "Send message",
-    "form_sent": "Message sent — we will be in touch soon.",
+    "form_sent": "Message sent - we will be in touch soon.",
     "form_error": "Something went wrong. Please try again.",
     "faq_link": "See how it works",
     "about_link": "Learn more about TimeLuxe"

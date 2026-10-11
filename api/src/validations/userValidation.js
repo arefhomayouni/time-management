@@ -4,7 +4,8 @@ export const registerSchema = Joi.object({
   username: Joi.string().required().trim(),
   email: Joi.string().email().required().lowercase().trim(),
   password: Joi.string().min(6).required(),
-  personalRate: Joi.number().min(0).optional()
+  personalRate: Joi.number().min(0).optional(),
+  personalRateCurrency: Joi.string().valid('usd', 'irr').optional()
 });
 
 export const loginSchema = Joi.object({
@@ -17,5 +18,6 @@ export const loginSchema = Joi.object({
 export const updateMeSchema = Joi.object({
   username: Joi.string().trim().min(3),
   email: Joi.string().email().lowercase().trim(),
-  personalRate: Joi.number().min(0)
+  personalRate: Joi.number().min(0),
+  personalRateCurrency: Joi.string().valid('usd', 'irr')
 });

@@ -3,6 +3,7 @@ import Joi from 'joi';
 export const createGroupSchema = Joi.object({
   name: Joi.string().required().trim(),
   hourlyRate: Joi.number().min(0).required(),
+  hourlyRateCurrency: Joi.string().valid('usd', 'irr').optional(),
   budget: Joi.number().min(0).optional()
 });
 
@@ -14,6 +15,7 @@ export const inviteUserSchema = Joi.object({
 export const updateGroupSchema = Joi.object({
   name: Joi.string().trim().min(2),
   hourlyRate: Joi.number().min(0),
+  hourlyRateCurrency: Joi.string().valid('usd', 'irr'),
   budget: Joi.number().min(0)
 }).min(1);
 

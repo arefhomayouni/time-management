@@ -1,55 +1,64 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { UsersThree, Plus, ArrowRight, EnvelopeSimple, Check, X } from '@phosphor-icons/react';
+import { Plus, Users, UserPlus, EnvelopeSimple } from '@phosphor-icons/react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useLanguage } from '../hooks/useLanguage';
-import { useAppSelector } from '../store/hooks';
-import {
-  useGetMyGroupsQuery,
-  useCreateGroupMutation,
-  useGetMyInvitationsQuery,
-  useHandleInvitationMutation,
-} from '../store/api/apiSlice';
-import { useMoney } from '../utils/format';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { useGetMyGroupsQuery, useCreateGroupMutation, useUpdateGroupMutation, useInviteUserMutation, useGetMyInvitationsQuery } from '../store/api/apiSlice';
+import { money, moneyByRateCurrency } from '../utils/format';
+import { TiltCard, staggerContainer, staggerItem, EASE_OUT } from '../components/motion/kinetics';
 
-const GroupSchema = Yup.object().shape({
-  name: Yup.string().min(2, 'Too short').required('Group name is required'),
+const GroupCreateSchema = Yup.object().shape({
+  name: Yup.string().min(2, 'At least 2 characters').required('Name is required'),
   hourlyRate: Yup.number()
     .typeError('Enter a number')
     .min(0, 'Cannot be negative')
+    // Rial rates are in the millions; only USD is bounded by 100k.
+    .when('hourlyRateCurrency', {
+      is: 'irr',
+      then: (s) => s.max(1_000_000_000_000, 'That looks too high'),
+      otherwise: (s) => s.max(100000, 'That looks too high'),
+    })
     .required('Rate is required'),
-  budget: Yup.number()
-    .typeError('Enter a number')
-    .min(0, 'Cannot be negative')
-    .nullable(),
+  hourlyRateCurrency: Yup.string().oneOf(['usd', 'irr']).required('Required'),
 });
 
-const GroupsPage: React.FC = () => {
-  const { t } = useLanguage();
-  const money = useMoney();
-  const user = useAppSelector((s) => s.auth.user);
-  const [showCreate, setShowCreate] = useState(false);
+const InviteSchema = Yup.object().shape({
+  email: Yup.string().email('Enter a valid email').required('Email is required'),
+});
 
-  const { data: groupsData, isLoading } = useGetMyGroupsQuery();
-  const { data: invData } = useGetMyInvitationsQuery();
+type RateCurrency = 'usd' | 'irr';
+
+const GroupsPage: React.FC = () => {
+  const { t, language } = useLanguage();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const reduce = useReducedMotion();
+  const [showInvite, setShowInvite] = React.useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = React.useState('');
+
+  const { data: groupsData, isLoading: groupsLoading } = useGetMyGroupsQuery();
+  const { data: invitationsData } = useGetMyInvitationsQuery();
   const [createGroup, { isLoading: creating }] = useCreateGroupMutation();
-  const [handleInvitation] = useHandleInvitationMutation();
+  const [updateGroup, { isLoading: updating }] = useUpdateGroupMutation();
+  const [inviteUser, { isLoading: inviting }] = useInviteUserMutation();
 
   const groups = groupsData?.data || [];
-  const invitations = invData?.data?.invitations || [];
+  const invitations = invitationsData?.data?.invitations || [];
 
   const handleCreate = async (values: any, { setSubmitting, resetForm }: any) => {
     try {
       await createGroup({
         name: values.name,
         hourlyRate: Number(values.hourlyRate),
-        budget: values.budget ? Number(values.budget) : 0,
+        hourlyRateCurrency: values.hourlyRateCurrency,
+        budget: values.budget ? Number(values.budget) : undefined,
       }).unwrap();
       toast.success(t('groups.group_created'));
       resetForm();
-      setShowCreate(false);
     } catch (err: any) {
       toast.error(err?.data?.message || t('common.error'));
     } finally {
@@ -57,198 +66,207 @@ const GroupsPage: React.FC = () => {
     }
   };
 
-  const respondInvite = async (invitationId: string, status: 'accepted' | 'declined') => {
+  const handleUpdate = async (id: string, values: any, { setSubmitting }: any) => {
     try {
-      await handleInvitation({ invitationId, status }).unwrap();
-      toast.success(status === 'accepted' ? t('groups.inv_accepted') : t('groups.inv_declined'));
+      await updateGroup({
+        id,
+        name: values.name,
+        hourlyRate: Number(values.hourlyRate),
+        hourlyRateCurrency: values.hourlyRateCurrency,
+        budget: values.budget ? Number(values.budget) : undefined,
+      }).unwrap();
+      toast.success(t('group.settings_saved'));
     } catch (err: any) {
       toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
-        <div className="skeleton h-9 w-48" />
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="skeleton h-44 w-full" />
-          ))}
-        </div>
-      </main>
-    );
-  }
+  const handleInvite = async (groupId: string, { setSubmitting }: any) => {
+    if (!inviteEmail.trim()) return;
+    try {
+      await inviteUser({ email: inviteEmail.trim(), groupId }).unwrap();
+      toast.success(t('groups.invite_sent'));
+      setInviteEmail('');
+      setShowInvite(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || t('common.error'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const ratePreview = (rate: number, currency: RateCurrency) =>
+    moneyByRateCurrency(rate, currency);
 
   return (
-    <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      <div className="aurora" aria-hidden="true" />
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
+        className="relative z-10 flex items-center justify-between"
+      >
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('groups.title')}</h1>
           <p className="mt-1.5 text-muted">{t('groups.subtitle')}</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary px-5 py-2.5">
-          <Plus size={17} />
+        <button onClick={() => navigate('/groups/new')} className="btn-primary flex items-center gap-2 !py-2.5 !px-5">
+          <Plus size={17} weight="bold" />
           {t('groups.create_btn')}
         </button>
-      </div>
+      </motion.div>
 
-      {/* Invitations inbox */}
+      {/* Invitations strip */}
       {invitations.length > 0 && (
-        <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted">
-            <EnvelopeSimple size={16} className="text-accent" />
-            {t('groups.invitations')}
-          </h2>
-          <div className="mt-3 space-y-2">
-            {invitations.map((inv: any) => (
-              <div
-                key={inv._id}
-                className="card flex flex-wrap items-center justify-between gap-3 p-4"
-              >
-                <div className="text-sm">
-                  <span className="font-semibold text-ink">{inv.group?.name}</span>
-                  <span className="text-muted">
-                    {' '}
-                    · {t('groups.hourly_rate')} {money(inv.group?.hourlyRate)} · {t('nav.logged_in_as')}{' '}
-                    {inv.fromUser?.username}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => respondInvite(inv._id, 'accepted')}
-                    className="btn-primary !px-3 !py-1.5 !text-xs"
-                  >
-                    <Check size={14} />
-                    {t('groups.accept')}
-                  </button>
-                  <button
-                    onClick={() => respondInvite(inv._id, 'declined')}
-                    className="btn-ghost !px-3 !py-1.5 !text-xs"
-                  >
-                    <X size={14} />
-                    {t('groups.decline')}
-                  </button>
-                </div>
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: EASE_OUT }}
+          className="relative z-10 mt-8 flex flex-wrap gap-3"
+        >
+          {invitations.map((inv: any) => (
+            <div key={inv._id} className="flex items-center gap-3 rounded-xl border border-line/70 bg-inset/50 px-4 py-3">
+              <div className="grid h-8 w-8 place-items-center rounded-full bg-accent/10 text-accent">
+                <UserPlus size={16} />
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Group grid */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {groups.map((group: any) => {
-          const isManager = group.manager === user?._id;
-          return (
-            <article key={group._id} className="card-deep flex flex-col p-6 transition-all duration-150 hover:border-accent/50 hover:shadow-[0_6px_18px_-8px_rgb(0,0,0,0.08)]">
-              <div className="flex items-start justify-between gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.15)]">
-                  <UsersThree size={20} weight="light" />
-                </span>
-                <span
-                  className={`badge ${
-                    isManager ? 'bg-accent/10 text-accent' : 'bg-inset text-muted'
-                  }`}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">{inv.email}</p>
+                <p className="text-xs text-muted">{inv.groupName}</p>
+              </div>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => {
+                    // accept handled by group detail page for now
+                  }}
+                  className="rounded-lg px-3 py-1 text-xs font-medium text-accent bg-accent/10 hover:bg-accent/20"
                 >
-                  {isManager ? t('groups.role_manager') : t('groups.role_member')}
-                </span>
+                  {t('groups.accept')}
+                </button>
+                <button
+                  onClick={() => {}}
+                  className="rounded-lg px-3 py-1 text-xs font-medium text-muted hover:text-ink"
+                >
+                  {t('groups.decline')}
+                </button>
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-ink">{group.name}</h3>
-              <dl className="num mt-3 space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-muted">{t('groups.hourly_rate')}</dt>
-                  <dd className="num font-semibold text-ink">{money(group.hourlyRate)}</dd>
-                </div>
-                {group.budget > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-muted">{t('groups.budget').split('(')[0].trim()}</dt>
-                    <dd className="num font-semibold text-ink">{money(group.budget)}</dd>
-                  </div>
-                )}
-              </dl>
-              <Link
-                to={`/groups/${group._id}`}
-                className="btn-ghost mt-5 w-full"
-              >
-                {t('groups.view_details')}
-                <ArrowRight size={15} />
-              </Link>
-            </article>
-          );
-        })}
-      </div>
-
-      {groups.length === 0 && invitations.length === 0 && (
-        <div className="mt-10 rounded-2xl border border-dashed border-line px-6 py-16 text-center">
-          <UsersThree size={36} className="mx-auto text-muted/60" />
-          <p className="mt-4 text-sm text-muted">{t('groups.no_groups')}</p>
-          <button onClick={() => setShowCreate(true)} className="btn-primary mt-5">
-            <Plus size={16} />
-            {t('groups.create_btn')}
-          </button>
-        </div>
+            </div>
+          ))}
+        </motion.div>
       )}
 
-      {/* Create modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowCreate(false)}
-          />
-          <div className="card relative w-full max-w-md p-7">
-            <h2 className="text-xl font-semibold tracking-tight">{t('groups.create_title')}</h2>
-            <Formik
-              initialValues={{ name: '', hourlyRate: '', budget: '' }}
-              validationSchema={GroupSchema}
-              onSubmit={handleCreate}
-            >
-              {({ isSubmitting }) => (
-                <Form className="mt-5 space-y-4">
-                  <div>
-                    <label className="label" htmlFor="g-name">{t('groups.group_name')}</label>
-                    <Field id="g-name" name="name" className="field mt-1.5" placeholder="Nightshift Crew" />
-                    <ErrorMessage name="name" component="p" className="mt-1.5 text-xs text-accent" />
-                  </div>
-                  <div>
-                    <label className="label" htmlFor="g-rate">{t('groups.hourly_rate')}</label>
-                    <Field
-                      id="g-rate"
-                      type="number"
-                      step="0.5"
-                      name="hourlyRate"
-                      className="field mt-1.5 num"
-                      placeholder="45"
-                    />
-                    <p className="mt-1.5 text-xs text-muted">{t('groups.rate_hint')}</p>
-                    <ErrorMessage name="hourlyRate" component="p" className="mt-1.5 text-xs text-accent" />
-                  </div>
-                  <div>
-                    <label className="label" htmlFor="g-budget">{t('groups.budget')}</label>
-                    <Field
-                      id="g-budget"
-                      type="number"
-                      name="budget"
-                      className="field mt-1.5 num"
-                      placeholder="5000"
-                    />
-                    <p className="mt-1.5 text-xs text-muted">{t('groups.budget_hint')}</p>
-                    <ErrorMessage name="budget" component="p" className="mt-1.5 text-xs text-accent" />
-                  </div>
-                  <div className="flex gap-3 pt-1">
-                    <button type="button" onClick={() => setShowCreate(false)} className="btn-ghost flex-1">
-                      {t('common.cancel')}
-                    </button>
-                    <button type="submit" disabled={isSubmitting || creating} className="btn-primary flex-1">
-                      {isSubmitting || creating ? t('common.loading') : t('common.confirm')}
-                    </button>
-                  </div>
-                </Form>
-              )}
-            </Formik>
+      {/* Groups grid */}
+      <motion.div
+        variants={staggerContainer(0.08)}
+        initial={reduce ? false : 'hidden'}
+        animate="show"
+        className="relative z-10 mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+      >
+        {groupsLoading ? (
+          [0, 1, 2].map((i) => (
+            <div key={i} className="skeleton h-44 rounded-2xl" />
+          ))
+        ) : groups.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-line/70 bg-inset/50 p-10 text-center">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-accent/10 text-accent">
+              <Users size={24} />
+            </div>
+            <p className="mt-4 text-sm text-muted">{t('groups.no_groups')}</p>
+            <Link to="/groups/new" className="btn-ghost mt-5 inline-flex">
+              {t('groups.create_btn')}
+            </Link>
           </div>
-        </div>
-      )}
+        ) : (
+          groups.map((g: any) => (
+            <motion.section key={g._id} variants={staggerItem}>
+              <TiltCard max={5}>
+                <section className="card-deep h-full p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="font-semibold text-ink">{g.name}</h2>
+                      <p className="mt-1 text-xs text-muted">
+                        {t('nav.logged_in_as')} {t('groups.role_manager')}
+                      </p>
+                    </div>
+                    <div className="num tabular-nums text-sm text-ink">
+                      {moneyByRateCurrency(g.hourlyRate, g.hourlyRateCurrency || 'usd')}
+                      <span className="text-muted">/{t('common.hr')}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 text-xs text-muted">
+                    <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-md border border-line/70 bg-inset text-[10px] font-medium">
+                      {g.hourlyRateCurrency === 'irr' ? 'IRR' : 'USD'}
+                    </span>
+                    {g.budget ? `${money(g.budget)} ${t('groups.budget')}` : ''}
+                  </div>
+                  <div className="mt-5 flex items-center gap-2.5">
+                    <Link to={`/groups/${g._id}`} className="btn-ghost text-sm">
+                      {t('groups.view_details')}
+                    </Link>
+                    <button
+                      onClick={() => setShowInvite(showInvite === g._id ? null : g._id)}
+                      className="btn-ghost text-sm"
+                    >
+                      {t('groups.invite_btn')}
+                    </button>
+                  </div>
+
+                  {/* Inline invite form */}
+                  {showInvite === g._id && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-4 border-t border-line/70 pt-4"
+                    >
+                      <Formik
+                        initialValues={{ email: inviteEmail }}
+                        validationSchema={InviteSchema}
+                        onSubmit={(values, { setSubmitting }) => handleInvite(g._id, { setSubmitting })}
+                      >
+                        {({ isSubmitting, setFieldValue }) => (
+                          <Form className="space-y-3">
+                            <div>
+                              <label className="label text-xs">{t('groups.invite_title')}</label>
+                              <Field
+                                type="email"
+                                name="email"
+                                className="field !w-full num"
+                                placeholder="you@team.com"
+                                value={inviteEmail}
+                                onChange={(e: any) => { setInviteEmail(e.target.value); setFieldValue('email', e.target.value) }}
+                              />
+                              <ErrorMessage name="email" component="p" className="mt-1 text-xs text-accent" />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="submit"
+                                disabled={isSubmitting || inviting}
+                                className="btn-primary flex-1 py-2 !text-sm"
+                              >
+                                {inviting ? t('common.loading') : t('groups.invite_btn')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowInvite(null)}
+                                className="btn-ghost py-2 text-sm"
+                              >
+                                {t('common.cancel')}
+                              </button>
+                            </div>
+                          </Form>
+                        )}
+                      </Formik>
+                    </motion.div>
+                  )}
+                </section>
+              </TiltCard>
+            </motion.section>
+          ))
+        )}
+      </motion.div>
     </main>
   );
 };

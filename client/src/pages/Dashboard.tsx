@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   PlusCircle,
   TrendUp,
@@ -20,8 +21,14 @@ import {
   useDeleteTimeLogMutation,
   useGetMyGroupsQuery,
 } from '../store/api/apiSlice';
-import { useMoney, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
-import JalaliDateInput from '../components/common/JalaliDateInput';
+import { useMoney, moneyByRateCurrency, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
+import { useCalendar } from '../hooks/useCalendar';
+import DateField from '../components/common/JalaliDateInput';
+import {
+  Reveal,
+  staggerContainer,
+  staggerItem,
+} from '../components/motion/kinetics';
 
 const EntrySchema = Yup.object().shape({
   date: Yup.date().typeError('Pick a date').required('Date is required'),
@@ -37,7 +44,9 @@ type RangeKey = 'this' | 'last' | '30' | 'custom';
 
 const Dashboard: React.FC = () => {
   const { t } = useLanguage();
-  const money = useMoney();
+  const moneyMode = useMoney();
+  const { formatDate } = useCalendar();
+  const reduce = useReducedMotion();
   const user = useAppSelector((s) => s.auth.user);
   const [rangeKey, setRangeKey] = useState<RangeKey>('this');
   const [custom, setCustom] = useState(() => {
@@ -101,9 +110,9 @@ const Dashboard: React.FC = () => {
   };
 
   const stats = [
-    { label: t('dashboard.monthly_earnings'), value: money(summary?.totalAmount), Icon: TrendUp },
+    { label: t('dashboard.monthly_earnings'), value: moneyMode(summary?.totalAmount), Icon: TrendUp },
     { label: t('dashboard.hours_worked'), value: `${fmtHours(summary?.totalHours)} ${t('common.hours_unit')}`, Icon: Clock },
-    { label: t('dashboard.pending_amount'), value: money(summary?.pendingAmount), Icon: Hourglass },
+    { label: t('dashboard.pending_amount'), value: moneyMode(summary?.pendingAmount), Icon: Hourglass },
     { label: t('dashboard.days_worked'), value: String(summary?.days.length || 0), Icon: Wallet },
   ];
 
@@ -113,10 +122,18 @@ const Dashboard: React.FC = () => {
     { key: '30', label: t('dashboard.range_30') },
   ];
 
+  const personalRateCurrency: 'usd' | 'irr' = (user?.personalRateCurrency ?? 'usd') as 'usd' | 'irr';
+
   return (
-    <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      <div className="aurora" aria-hidden="true" />
       {/* Header + range control */}
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"
+      >
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             {t('dashboard.welcome')}, <span className="text-accent">{user?.username}</span>
@@ -131,18 +148,14 @@ const Dashboard: React.FC = () => {
                 key={p.key}
                 type="button"
                 onClick={() => setRangeKey(p.key as RangeKey)}
-                className={`rounded-xl border px-3 py-2 text-[13px] font-medium transition-colors ${
-                  rangeKey === p.key
-                    ? 'border-accent bg-accent/10 text-accent'
-                    : 'border-line bg-surface text-muted hover:text-ink'
-                }`}
+                className={`rounded-xl border px-3 py-2 text-[13px] font-medium transition-colors ${rangeKey === p.key ? 'border-accent bg-accent/10 text-accent' : 'border-line bg-surface text-muted hover:text-ink'}`}
               >
                 {p.label}
               </button>
             ))}
           </div>
           <div className="flex flex-col gap-2">
-            <JalaliDateInput
+            <DateField
               label={t('common.date')}
               value={params.startDate}
               onChange={(iso) => {
@@ -153,7 +166,7 @@ const Dashboard: React.FC = () => {
             />
             <div className="flex items-center gap-2">
               <span className="text-muted text-xs">→</span>
-              <JalaliDateInput
+              <DateField
                 label={t('common.to')}
                 value={params.endDate}
                 onChange={(iso) => {
@@ -165,16 +178,20 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stat row: separated by hairlines, no card boxes */}
-      <div className="mt-8 grid grid-cols-2 divide-line border-y border-line lg:grid-cols-4 lg:divide-x">
+      <motion.div
+        variants={staggerContainer(0.07)}
+        initial={reduce ? false : 'hidden'}
+        animate="show"
+        className="relative z-10 mt-8 grid grid-cols-2 divide-line border-y border-line lg:grid-cols-4 lg:divide-x"
+      >
         {stats.map(({ label, value, Icon }, i) => (
-          <div
+          <motion.div
             key={label}
-            className={`stat-tile flex items-center gap-3.5 ${
-              i < 2 ? 'border-b border-line lg:border-b-0' : ''
-            } ${i % 2 === 1 ? 'border-s border-line ps-4 lg:border-s-0 lg:ps-6' : ''}`}
+            variants={staggerItem}
+            className={`stat-tile flex items-center gap-3.5 ${i < 2 ? 'border-b border-line lg:border-b-0' : ''} ${i % 2 === 1 ? 'border-s border-line ps-4 lg:border-s-0 lg:ps-6' : ''}`}
           >
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
               <Icon size={20} weight="light" />
@@ -187,13 +204,14 @@ const Dashboard: React.FC = () => {
                 <p className="num-display mt-0.5 text-xl font-semibold tracking-tight text-ink">{value}</p>
               )}
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">
+      <div className="relative z-10 mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">
         {/* Log form */}
-        <section className="card-deep h-fit p-6">
+        <Reveal className="h-fit">
+          <section className="card-deep h-fit p-6 elevated">
           <h2 className="flex items-center gap-2 font-semibold">
             <PlusCircle size={19} weight="light" className="text-accent" />
             {t('dashboard.log_time')}
@@ -210,8 +228,15 @@ const Dashboard: React.FC = () => {
             {({ isSubmitting }) => (
               <Form className="mt-5 space-y-4">
                 <div>
-                  <label className="label" htmlFor="entry-date">{t('common.date')}</label>
-                  <Field id="entry-date" type="date" name="date" className="field mt-1.5 num" />
+                  <Field name="date">
+                    {({ field, form }: any) => (
+                      <DateField
+                        label={t('common.date')}
+                        value={field.value || ''}
+                        onChange={(iso) => form.setFieldValue('date', iso)}
+                      />
+                    )}
+                  </Field>
                   <ErrorMessage name="date" component="p" className="mt-1.5 text-xs text-accent" />
                 </div>
                 <div>
@@ -236,7 +261,7 @@ const Dashboard: React.FC = () => {
                     <option value="">{t('dashboard.group_personal')}</option>
                     {groups.map((g: any) => (
                       <option key={g._id} value={g._id}>
-                        {g.name} · {money(g.hourlyRate)}/{t('common.hr')}
+                        {g.name} · {moneyByRateCurrency(g.hourlyRate, g.hourlyRateCurrency || 'usd')}/{t('common.hr')}
                       </option>
                     ))}
                   </Field>
@@ -247,14 +272,16 @@ const Dashboard: React.FC = () => {
               </Form>
             )}
           </Formik>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Entries table */}
+        <Reveal>
         <section className="card-deep overflow-hidden">
           <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
             <h2 className="font-semibold">{t('dashboard.history_title')}</h2>
             <span className="num text-xs text-muted">
-              {params.startDate} → {params.endDate}
+              {formatDate(params.startDate)} → {formatDate(params.endDate)}
             </span>
           </div>
 
@@ -289,20 +316,16 @@ const Dashboard: React.FC = () => {
                   {logs.map((log: any) => (
                     <tr key={log._id} className="transition-colors hover:bg-inset/60">
                       <td className="table-cell num text-muted">
-                        {new Date(log.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                        {formatDate(log.date)}
                       </td>
-                      <td className="table-cell num">{fmtHours(log.hours)}</td>                        <td className="table-cell num font-semibold text-ink">{money(log.amount)}</td>
+                      <td className="table-cell num">{fmtHours(log.hours)}</td>
+                      <td className="table-cell num font-semibold text-ink">{moneyMode(log.amount)}</td>
                       <td className="table-cell text-muted">
                         {log.group ? t('groups.title') : t('dashboard.personal')}
                       </td>
                       <td className="table-cell">
                         <span
-                          className={`badge ${
-                            log.status === 'paid' ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn'
-                          }`}
+                          className={`badge ${log.status === 'paid' ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn'}`}
                         >
                           {log.status === 'paid'
                             ? t('dashboard.status_paid')
@@ -326,6 +349,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
         </section>
+        </Reveal>
       </div>
     </main>
   );

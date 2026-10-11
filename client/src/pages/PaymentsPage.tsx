@@ -3,12 +3,17 @@ import toast from 'react-hot-toast';
 import { Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useGetMyPaymentsQuery } from '../store/api/apiSlice';
-import { useMoney, shortDate, toDateInput } from '../utils/format';
+import { useMoney, toDateInput } from '../utils/format';
+import { useCalendar } from '../hooks/useCalendar';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Reveal, EASE_OUT } from '../components/motion/kinetics';
 import JalaliDateRangePicker from '../components/common/JalaliDateRangePicker';
 
 const PaymentsPage: React.FC = () => {
   const { t } = useLanguage();
   const money = useMoney();
+  const { formatDate } = useCalendar();
+  const reduce = useReducedMotion();
   const now = new Date();
   const [range, setRange] = useState(() => {
     // Default: last 90 days so new users see something meaningful
@@ -28,8 +33,14 @@ const PaymentsPage: React.FC = () => {
   const total = data?.data?.total ?? 0;
 
   return (
-    <main className="mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      <div className="aurora" aria-hidden="true" />
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
+        className="relative z-10 flex flex-wrap items-end justify-between gap-4"
+      >
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('payments.title')}</h1>
           <p className="mt-1.5 text-muted">{t('payments.subtitle')}</p>
@@ -40,10 +51,10 @@ const PaymentsPage: React.FC = () => {
           onChange={(range) => setRange({ ...range })}
           className="!w-full"
         />
-      </div>
+      </motion.div>
 
       {/* Total strip */}
-      <div className="mt-8 flex items-center justify-between border-y border-line py-5">
+      <div className="relative z-10 mt-8 flex items-center justify-between border-y border-line py-5">
         <span className="text-sm text-muted">{t('payments.total_received')}</span>
         {isLoading ? (
           <div className="skeleton h-7 w-32" />
@@ -52,7 +63,8 @@ const PaymentsPage: React.FC = () => {
         )}
       </div>
 
-      <section className="card-deep mt-8 overflow-hidden">
+      <Reveal className="relative z-10">
+      <section className="card-deep elevated mt-8 overflow-hidden">
         {isLoading ? (
           <div className="space-y-3 p-5">
             {[0, 1, 2].map((i) => (
@@ -78,7 +90,7 @@ const PaymentsPage: React.FC = () => {
               <tbody className="divide-y divide-line/60">
                 {payments.map((p: any) => (
                   <tr key={p._id} className="transition-colors hover:bg-inset/60">
-                    <td className="table-cell num text-muted">{shortDate(p.date)}</td>
+                    <td className="table-cell num text-muted">{formatDate(p.date)}</td>
                     <td className="table-cell">
                       <span className="badge bg-inset uppercase text-muted">{p.paymentMethod}</span>
                     </td>
@@ -93,6 +105,7 @@ const PaymentsPage: React.FC = () => {
           </div>
         )}
       </section>
+      </Reveal>
     </main>
   );
 };

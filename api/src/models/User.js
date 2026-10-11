@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  personalRateCurrency: {
+    type: String,
+    enum: ['usd', 'irr'],
+    default: 'usd'
+  },
   role: {
     type: String,
     enum: ['user', 'manager'],

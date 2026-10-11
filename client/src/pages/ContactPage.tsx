@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Envelope, Phone, MapPin, ArrowRight, Check } from '@phosphor-icons/react';
+import { TiltCard, KineticHeading } from '../components/motion/kinetics';
 import { useLanguage } from '../hooks/useLanguage';
 
 const fadeUp = {
@@ -33,13 +34,14 @@ const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormState('submitting');
-    // Simulate submission — in production, wire to a real endpoint
+    // Simulate submission - in production, wire to a real endpoint
     await new Promise((r) => setTimeout(r, 600));
     setFormState('sent');
   };
 
   return (
     <main className="relative pt-24">
+      <div className="aurora" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
       <div className="app-shell">
 
@@ -68,9 +70,12 @@ const ContactPage: React.FC = () => {
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary shadow-[0_4px_12px_-4px_rgb(var(--c-glow-secondary)/0.3)]">
                 <Envelope size={22} weight="bold" />
               </span>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl text-ink">
-                {t('contact.title')}
-              </h1>
+              <KineticHeading
+                level={1}
+                text={t('contact.title')}
+                className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl lg:text-5xl"
+                accentWords={[0]}
+              />
             </div>
             <p className="mt-4 max-w-2xl text-muted leading-relaxed sm:text-lg">
               {t('contact.subtitle')}
@@ -105,15 +110,17 @@ const ContactPage: React.FC = () => {
                 },
               ].map((item, i) => (
                 <Reveal key={i} delay={i * 0.05}>
-                  <div className="card-deep p-6 flex items-start gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
-                      {item.icon}
-                    </span>
-                    <div>
-                      <p className="text-xs text-muted mb-1">{item.label}</p>
-                      <p className="text-sm font-medium text-ink">{item.value}</p>
+                  <TiltCard max={7} className="h-full">
+                    <div className="card-deep flex h-full items-start gap-4 p-6">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
+                        {item.icon}
+                      </span>
+                      <div>
+                        <p className="mb-1 text-xs text-muted">{item.label}</p>
+                        <p className="text-sm font-medium text-ink">{item.value}</p>
+                      </div>
                     </div>
-                  </div>
+                  </TiltCard>
                 </Reveal>
               ))}
             </div>
@@ -190,7 +197,7 @@ const ContactPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={formState === 'submitting'}
-                    className="btn-primary w-full !py-3"
+                    className="btn-primary btn-sheen w-full !py-3"
                   >
                     {formState === 'submitting' ? (
                       <span className="flex items-center gap-2">

@@ -1,8 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { toJalaaliDate, toGregorianISO, parseJalaaliInput, formatJalaaliFa } from '../../utils/jalali';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CalendarBlank } from '@phosphor-icons/react';
+import {
+  toJalaaliDate,
+  toGregorianISO,
+  parseJalaaliInput,
+  formatJalaaliFa,
+  formatJalaaliShort,
+} from '../../utils/jalali';
+import { useCalendar } from '../../hooks/useCalendar';
 
-interface JalaliDateInputProps {
-  /** Value as Gregorian ISO string (yyyy-mm-dd) — what the parent stores and sends to the API */
+interface DateFieldProps {
+  /** Value as Gregorian ISO string (yyyy-mm-dd) - what the parent stores and sends to the API */
   value: string | null;
   onChange: (gregorianISO: string) => void;
   label?: string;
@@ -10,24 +18,20 @@ interface JalaliDateInputProps {
   error?: string;
   disabled?: boolean;
   placeholder?: string;
-  /** Show Jalali date display above the input */
-  showJalali?: boolean;
   /** Custom error message when Jalali parse fails */
   parseError?: string;
 }
 
-
 /**
- * JalaliDateInput — dual-mode date input for Persian users.
+ * DateField - single-calendar date input.
  *
- * Display: shows the Jalali date (in Persian digits) above the native date input.
- * Input: native <input type="date"> bound to the Gregorian ISO value.
- * On change: converts Gregorian → Jalali for display; keeps Gregorian for API/DB.
+ * Shows exactly ONE calendar, whichever the user picked in the navbar
+ * toggle (ui.calendar): Jalali text entry, or the native Gregorian picker.
+ * Never both at once.
  *
- * Also supports direct Jalali text entry via a secondary input that parses
- * Persian-digit dates and converts them to Gregorian before committing.
+ * Storage is always Gregorian ISO regardless of what is displayed.
  */
-const JalaliDateInput: React.FC<JalaliDateInputProps> = ({
+const DateField: React.FC<DateFieldProps> = ({
   value,
   onChange,
   label,
@@ -35,52 +39,49 @@ const JalaliDateInput: React.FC<JalaliDateInputProps> = ({
   error,
   disabled = false,
   placeholder,
-  showJalali = true,
   parseError,
 }) => {
-  // Jalali representation of the current Gregorian value
-  const jalali = useMemo(() => toJalaaliDate(value), [value]);
+  const { calendar } = useCalendar();
 
-  // For the "direct Jalali entry" mode
+  // Jalali text the user is typing (Persian or Latin digits)
   const [jalaliText, setJalaliText] = useState('');
   const [parseFail, setParseFail] = useState(false);
 
-  // Sync jalaliText when value changes from outside
-  React.useEffect(() => {
-    if (jalali) {
-      const fa = formatJalaaliFa(jalali, { showMonth: false });
-      if (jalaliText !== fa) setJalaliText(fa);
-    } else {
-      if (jalaliText !== '') setJalaliText('');
-    }
+  const jalali = useMemo(() => toJalaaliDate(value), [value]);
+
+  // Keep the Jalali text in sync when the value changes from outside
+  useEffect(() => {
+    if (calendar !== 'jalali') return;
+    const next = jalali ? formatJalaaliFa(jalali, { showMonth: false }) : '';
+    setJalaliText((prev) => (prev === next ? prev : next));
     setParseFail(false);
-  }, [jalali, jalaliText]);
+  }, [jalali, calendar]);
 
   const handleGregorianChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const iso = e.target.value;
-    if (!iso) {
-      onChange('');
-      return;
-    }
-    onChange(iso);
+    onChange(e.target.value || '');
   };
 
   const handleJalaliTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     setJalaliText(raw);
 
+    // Commit the current text even when it is not yet parseable, so the
+    // user can type intermediate strings like "1405/07/" without the field
+    // snapping back. We only keep parseFail so we can show a hint; we never
+    // overwrite the user's input with the last good value.
     const parsed = parseJalaaliInput(raw);
     if (!parsed) {
-      setParseFail(true);
+      setParseFail(raw.trim().length > 0);
       return;
     }
     setParseFail(false);
-
-    const greg = toGregorianISO(parsed);
-    onChange(greg);
+    setJalaliText(formatJalaaliShort(parsed));
+    onChange(toGregorianISO(parsed));
   };
 
-  const currentJalaliDisplay = jalali ? formatJalaaliFa(jalali) : '';
+  const shownPlaceholder =
+    placeholder ||
+    (calendar === 'jalali' ? '۱۴۰۵/۰۷/۱۶  یا  1405/07/16' : 'yyyy-mm-dd');
 
   return (
     <div className={`space-y-1.5 ${className}`}>
@@ -90,73 +91,58 @@ const JalaliDateInput: React.FC<JalaliDateInputProps> = ({
         </label>
       )}
 
-      {/* Jalali display / entry row */}
       <div className="flex items-center gap-2">
-        {/* Jalali calendar icon */}
-        <span className="flex h-7 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent text-xs">
-          📅
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line/70 bg-inset/70 text-muted"
+          aria-hidden="true"
+        >
+          <CalendarBlank size={16} weight="light" />
         </span>
 
-        {/* Jalali date display (for Gregorian) or Jalali text input */}
-        <div className="flex-1 overflow-hidden">
-          {showJalali && jalali ? (
-            /* Show Jalali date display when we have a Gregorian value */
-            <div className="flex items-center gap-2 rounded-xl bg-inset/80 px-3 py-2 text-sm">
-              <span className="text-accent font-medium tabular-nums" dir="rtl">
-                {currentJalaliDisplay}
-              </span>
-              <span className="text-muted text-xs">(شمسی)</span>
-            </div>
-          ) : (
-            /* Direct Jalali text entry */
-            <input
-              type="text"
-              inputMode="text"
-              value={jalaliText}
-              onChange={handleJalaliTextChange}
-              onFocus={() => setParseFail(false)}
-              placeholder="۱۴۰۵/۰۶/۲۸  یا  1405/06/28"
-              className={`field num w-full ${parseFail ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
-              disabled={disabled}
-              dir="rtl"
-              style={{ textAlign: 'right' }}
-            />
-          )}
-        </div>
-
-        {/* Native Gregorian date picker (hidden from Jalali users, but functional) */}
-        <input
-          type="date"
-          value={value || ''}
-          onChange={handleGregorianChange}
-          disabled={disabled}
-          className="field num w-auto sm:w-44"
-          style={{ opacity: 0.7, pointerEvents: 'auto' }}
-          title="تاریخ شمسی (Jalali)"
-          aria-label="تاریخ شمسی"
-        />
+        {calendar === 'jalali' ? (
+          <input
+            type="text"
+            inputMode="text"
+            value={jalaliText}
+            onChange={handleJalaliTextChange}
+            onFocus={() => setParseFail(false)}
+            placeholder={shownPlaceholder}
+            className={`field num w-full ${
+              parseFail
+                ? 'border-red-400 focus:border-red-500 focus:ring-red-200'
+                : ''
+            }`}
+            disabled={disabled}
+            dir="rtl"
+            style={{ textAlign: 'right' }}
+            aria-invalid={parseFail || undefined}
+          />
+        ) : (
+          <input
+            type="date"
+            value={value || ''}
+            onChange={handleGregorianChange}
+            disabled={disabled}
+            className="field num w-full"
+          />
+        )}
       </div>
 
-      {/* Parse error */}
       {parseFail && (
-        <p className="text-xs text-red-500" style={{ paddingLeft: '28px' }}>
+        <p className="text-xs text-red-500" aria-live="polite">
           {parseError || 'تاریخ شمسی نامعتبر است. فرمت: سال/ماه/روز'}
         </p>
       )}
 
-      {/* Error from props */}
-      {error && !parseFail && (
-        <p className="text-xs text-accent" style={{ paddingLeft: '28px' }}>
-          {error}
+      {error && !parseFail && <p className="text-xs text-accent">{error}</p>}
+
+      {calendar === 'jalali' && !parseFail && !error && (
+        <p className="text-xs text-muted">
+          تاریخ شمسی وارد کنید؛ به‌صورت میلادی ذخیره می‌شود.
         </p>
       )}
-
-      {/* Small helper text */}
-      <p className="text-xs text-muted" style={{ paddingLeft: '28px' }}>
-        تاریخ به فرمت شمسی ذخیره می‌شود و برای بازیافت به تاریخ میلادی تبدیل می‌گردد.
-      </p>
     </div>
   );
 };
 
-export default JalaliDateInput;
+export default DateField;

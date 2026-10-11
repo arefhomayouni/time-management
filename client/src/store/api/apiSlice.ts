@@ -80,7 +80,7 @@ export const apiSlice = createApi({
     }),
     register: builder.mutation<
       { token: string; data: { user: User } },
-      { username: string; email: string; password: string; personalRate: number }
+      { username: string; email: string; password: string; personalRate: number; personalRateCurrency?: 'usd' | 'irr' }
     >({
       query: (userData) => ({ url: '/users/register', method: 'POST', body: userData }),
     }),
@@ -88,7 +88,7 @@ export const apiSlice = createApi({
       query: () => '/users/me',
       providesTags: ['User'],
     }),
-    updateMe: builder.mutation<{ data: { user: User } }, Partial<User>>({
+    updateMe: builder.mutation<{ data: { user: User } }, Partial<User> & { personalRateCurrency?: 'usd' | 'irr' }>({
       query: (data) => ({ url: '/users/me', method: 'PATCH', body: data }),
       invalidatesTags: ['User'],
     }),
@@ -146,7 +146,7 @@ export const apiSlice = createApi({
       query: () => ({ url: '/groups/my-groups' }),
       providesTags: ['Group'],
     }),
-    createGroup: builder.mutation<{ data: { group: any } }, { name: string; hourlyRate: number; budget?: number }>({
+    createGroup: builder.mutation<{ data: { group: any } }, { name: string; hourlyRate: number; hourlyRateCurrency?: 'usd' | 'irr'; budget?: number }>({
       query: (group) => ({ url: '/groups', method: 'POST', body: group }),
       invalidatesTags: ['Group'],
     }),
@@ -156,7 +156,7 @@ export const apiSlice = createApi({
     }),
     updateGroup: builder.mutation<
       { data: { group: any } },
-      { id: string; name?: string; hourlyRate?: number; budget?: number }
+      { id: string; name?: string; hourlyRate?: number; hourlyRateCurrency?: 'usd' | 'irr'; budget?: number }
     >({
       query: ({ id, ...body }) => ({ url: `/groups/${id}`, method: 'PATCH', body }),
       invalidatesTags: ['Group'],

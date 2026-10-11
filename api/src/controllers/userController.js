@@ -50,7 +50,7 @@ const signToken = (id) => {
  *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const register = catchAsync(async (req, res, next) => {
-  const { username, email, password, personalRate } = req.body;
+  const { username, email, password, personalRate, personalRateCurrency } = req.body;
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -58,7 +58,8 @@ export const register = catchAsync(async (req, res, next) => {
     username,
     email,
     password: hashedPassword,
-    personalRate
+    personalRate,
+    personalRateCurrency: personalRateCurrency || 'usd'
   });
 
   const token = signToken(user._id);
@@ -216,7 +217,11 @@ export const getMe = catchAsync(async (req, res, next) => {
  *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const updateMe = catchAsync(async (req, res, next) => {
-  const user = await User.findByIdAndUpdate(req.user.id, req.body, {
+  const allowed = {};
+  for (const field of ['username', 'email', 'personalRate', 'personalRateCurrency']) {
+    if (req.body[field] !== undefined) allowed[field] = req.body[field];
+  }
+  const user = await User.findByIdAndUpdate(req.user.id, allowed, {
     new: true,
     runValidators: true
   });

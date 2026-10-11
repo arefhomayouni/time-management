@@ -4,6 +4,8 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { Clock } from '@phosphor-icons/react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { TiltCard, EASE_OUT } from '../components/motion/kinetics';
 import { useLanguage } from '../hooks/useLanguage';
 import { useLoginMutation } from '../store/api/apiSlice';
 import { useAppDispatch } from '../store/hooks';
@@ -20,6 +22,7 @@ const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { t } = useLanguage();
   const [login, { isLoading }] = useLoginMutation();
+  const reduce = useReducedMotion();
 
   const from = (location.state as any)?.from || '/dashboard';
 
@@ -37,10 +40,16 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <main className="flex min-h-[calc(100dvh-4rem)] items-center justify-center px-4 pb-16 pt-10">
+    <main className="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center px-4 pb-16 pt-10">
+      <div className="aurora" aria-hidden="true" />
       <div className="grid w-full max-w-5xl gap-10 md:grid-cols-2 md:items-center md:gap-16">
         {/* Left: value copy */}
-        <div className="hidden md:block">
+        <motion.div
+          initial={reduce ? false : { opacity: 0, x: -32 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, ease: EASE_OUT }}
+          className="relative z-10 hidden md:block"
+        >
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-accent-ink">
             <Clock size={22} />
           </div>
@@ -60,10 +69,17 @@ const LoginPage: React.FC = () => {
               {t('home.c5_title')}
             </li>
           </ul>
-        </div>
+        </motion.div>
 
         {/* Right: form */}
-        <div className="card w-full max-w-md justify-self-center p-7 sm:p-9">
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 36, rotateX: 10 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: EASE_OUT }}
+          className="stage-3d relative z-10"
+        >
+          <TiltCard max={5} className="w-full max-w-md justify-self-center">
+            <div className="card elevated w-full p-7 sm:p-9">
           <h2 className="text-2xl font-semibold tracking-tight">{t('auth.login_title')}</h2>
           <p className="mt-1.5 text-sm text-muted">{t('auth.login_subtitle')}</p>
 
@@ -116,7 +132,9 @@ const LoginPage: React.FC = () => {
               {t('auth.create_link')}
             </Link>
           </p>
-        </div>
+            </div>
+          </TiltCard>
+        </motion.div>
       </div>
     </main>
   );

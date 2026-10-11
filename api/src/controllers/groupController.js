@@ -41,11 +41,12 @@ import mongoose from 'mongoose';
  *                     group: { $ref: '#/components/schemas/Group' }
  */
 export const createGroup = catchAsync(async (req, res, next) => {
-  const { name, hourlyRate, budget } = req.body;
+  const { name, hourlyRate, hourlyRateCurrency, budget } = req.body;
 
   const group = await Group.create({
     name,
     hourlyRate,
+    hourlyRateCurrency: hourlyRateCurrency || 'usd',
     budget: budget || 0,
     manager: req.user.id,
     members: [req.user.id]
@@ -386,7 +387,7 @@ export const updateGroup = catchAsync(async (req, res, next) => {
   }
 
   const allowed = {};
-  for (const field of ['name', 'hourlyRate', 'budget']) {
+  for (const field of ['name', 'hourlyRate', 'hourlyRateCurrency', 'budget']) {
     if (req.body[field] !== undefined) allowed[field] = req.body[field];
   }
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Hexagon, Users, Calendar, CurrencyDollar, ShieldCheck, Clock, ArrowRight } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
+import { TiltCard, KineticHeading } from '../components/motion/kinetics';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -31,6 +32,7 @@ const AboutPage: React.FC = () => {
 
   return (
     <main className="relative pt-24">
+      <div className="aurora" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
       <div className="app-shell">
 
@@ -59,9 +61,12 @@ const AboutPage: React.FC = () => {
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent shadow-[0_4px_12px_-4px_rgb(var(--c-glow)/0.3)]">
                 <Hexagon size={24} weight="bold" />
               </span>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
-                {t('about.title')}
-              </h1>
+              <KineticHeading
+                level={1}
+                text={t('about.title')}
+                className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl"
+                accentWords={[0]}
+              />
             </div>
             <p className="mt-5 max-w-2xl text-muted leading-relaxed sm:text-lg">
               {t('about.subtitle')}
@@ -103,15 +108,17 @@ const AboutPage: React.FC = () => {
                 { icon: <Hexagon size={24} weight="light" />, title: t('about.value6_title'), desc: t('about.value6_desc'), bg: '' },
               ].map((item, i) => (
                 <Reveal key={item.title} delay={i * 0.05}>
-                  <div className={`card-deep p-6 hover:-translate-y-0.5 transition-transform duration-300 ${item.bg}`}>
-                    <div className="flex items-center gap-3 text-accent mb-4">
-                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
-                        {item.icon}
-                      </span>
-                      <h3 className="text-lg font-semibold text-ink">{item.title}</h3>
+                  <TiltCard max={7} className="h-full">
+                    <div className={`card-deep h-full p-6 ${item.bg}`}>
+                      <div className="flex items-center gap-3 text-accent mb-4">
+                        <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
+                          {item.icon}
+                        </span>
+                        <h3 className="text-lg font-semibold text-ink">{item.title}</h3>
+                      </div>
+                      <p className="text-sm text-muted leading-relaxed">{item.desc}</p>
                     </div>
-                    <p className="text-sm text-muted leading-relaxed">{item.desc}</p>
-                  </div>
+                  </TiltCard>
                 </Reveal>
               ))}
             </div>
@@ -133,7 +140,8 @@ const AboutPage: React.FC = () => {
                 { name: t('about.team3_name'), role: t('about.team3_role'), bio: t('about.team3_bio'), initials: 'M' },
               ].map((member, i) => (
                 <Reveal key={member.name} delay={i * 0.07}>
-                  <div className="card-deep p-6 text-center hover:-translate-y-0.5 transition-transform duration-300">
+                  <TiltCard max={7} className="h-full">
+                  <div className="card-deep h-full p-6 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-2xl font-bold text-accent shadow-[0_4px_12px_-4px_rgb(var(--c-glow)/0.2)] ring-1 ring-accent/20">
                       {member.initials}
                     </div>
@@ -141,6 +149,7 @@ const AboutPage: React.FC = () => {
                     <p className="text-sm text-accent font-medium">{member.role}</p>
                     <p className="mt-3 text-sm text-muted leading-relaxed">{member.bio}</p>
                   </div>
+                  </TiltCard>
                 </Reveal>
               ))}
             </div>

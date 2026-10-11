@@ -1,81 +1,80 @@
-import React, { useState } from 'react';
-import { toJalaaliDate, toGregorianISO, parseJalaaliInput } from '../../utils/jalali';
+import React, { useEffect, useState } from 'react';
+import {
+  toJalaaliDate,
+  toGregorianISO,
+  parseJalaaliInput,
+  formatJalaaliShort,
+} from '../../utils/jalali';
+import { useCalendar } from '../../hooks/useCalendar';
 
 interface JalaliDateRangePickerProps {
-  /** Gregorian ISO strings — what the parent stores and sends to the API */
+  /** Gregorian ISO strings - what the parent stores and sends to the API */
   value: { startDate: string; endDate: string };
   onChange: (range: { startDate: string; endDate: string }) => void;
   label?: string;
   className?: string;
-  showJalali?: boolean;
 }
 
 /**
- * JalaliDateRangePicker — dual Gregorian/Jalali date range input.
+ * JalaliDateRangePicker - single-calendar date range input.
  *
- * Displays Jalali dates (Persian digits) alongside native Gregorian date inputs.
- * Parses Jalali text entry (e.g. ۱۴۰۵/۰۶/۲۸) and converts to Gregorian for the API.
+ * Renders exactly one calendar based on the user's preference (ui.calendar):
+ *   - 'jalali'    -> two Persian-digit text inputs (1405/07/16)
+ *   - 'gregorian' -> two native date inputs
+ * Never both. Values are always Gregorian ISO for the API/DB.
  */
 const JalaliDateRangePicker: React.FC<JalaliDateRangePickerProps> = ({
   value,
   onChange,
   label,
   className = '',
-  showJalali = true,
 }) => {
+  const { calendar } = useCalendar();
   const [jalaliStart, setJalaliStart] = useState('');
   const [jalaliEnd, setJalaliEnd] = useState('');
   const [parseError, setParseError] = useState(false);
 
-  // Sync Jalali text when Gregorian value changes
-  React.useEffect(() => {
-    if (value.startDate) {
-      const j = toJalaaliDate(value.startDate);
-      if (j) setJalaliStart(formatJalaliShort(j));
-    }
-    if (value.endDate) {
-      const j = toJalaaliDate(value.endDate);
-      if (j) setJalaliEnd(formatJalaliShort(j));
-    }
+  // Keep the Jalali text inputs in sync with the Gregorian value
+  useEffect(() => {
+    if (calendar !== 'jalali') return;
+    const s = value.startDate ? toJalaaliDate(value.startDate) : null;
+    const e = value.endDate ? toJalaaliDate(value.endDate) : null;
+    setJalaliStart(s ? formatJalaaliShort(s) : '');
+    setJalaliEnd(e ? formatJalaaliShort(e) : '');
     setParseError(false);
-  }, [value.startDate, value.endDate]);
+  }, [value.startDate, value.endDate, calendar]);
 
-  const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleJalaliChange = (which: 'start' | 'end') => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const raw = e.target.value;
-    setJalaliStart(raw);
+    if (which === 'start') setJalaliStart(raw);
+    else setJalaliEnd(raw);
+
+    // Keep the text field in sync with the parse result so it never jumps
+    // back while the user is still typing an intermediate value like
+    // "1405/07/". We only overwrite with the normalized short form once the
+    // input has become a complete, valid Jalali date.
     const parsed = parseJalaaliInput(raw);
     if (parsed) {
       setParseError(false);
-      onChange({ startDate: toGregorianISO(parsed), endDate: value.endDate });
-    } else if (raw.length > 0) {
+      if (which === 'start') setJalaliStart(formatJalaaliShort(parsed));
+      else setJalaliEnd(formatJalaaliShort(parsed));
+      onChange(
+        which === 'start'
+          ? { startDate: toGregorianISO(parsed), endDate: value.endDate }
+          : { startDate: value.startDate, endDate: toGregorianISO(parsed) }
+      );
+    } else if (raw.trim().length > 0) {
       setParseError(true);
     } else {
       setParseError(false);
-      onChange({ startDate: '', endDate: value.endDate });
+      onChange(
+        which === 'start'
+          ? { startDate: '', endDate: value.endDate }
+          : { startDate: value.startDate, endDate: '' }
+      );
     }
-  };
-
-  const handleEndChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setJalaliEnd(raw);
-    const parsed = parseJalaaliInput(raw);
-    if (parsed) {
-      setParseError(false);
-      onChange({ startDate: value.startDate, endDate: toGregorianISO(parsed) });
-    } else if (raw.length > 0) {
-      setParseError(true);
-    } else {
-      setParseError(false);
-      onChange({ startDate: value.startDate, endDate: '' });
-    }
-  };
-
-  const handleGregorianStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ startDate: e.target.value, endDate: value.endDate });
-  };
-
-  const handleGregorianEndChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ startDate: value.startDate, endDate: e.target.value });
   };
 
   return (
@@ -83,79 +82,68 @@ const JalaliDateRangePicker: React.FC<JalaliDateRangePickerProps> = ({
       {label && <span className="label">{label}</span>}
 
       <div className="flex flex-wrap items-center gap-2">
-        {/* Jalali start */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted">از:</span>
-          <input
-            type="text"
-            inputMode="text"
-            value={jalaliStart}
-            onChange={handleStartChange}
-            placeholder="۱۴۰۵/۰۶/۲۸"
-            className="field num w-32 text-right"
-            dir="rtl"
-          />
+          {calendar === 'jalali' ? (
+            <input
+              type="text"
+              inputMode="text"
+              value={jalaliStart}
+              onChange={handleJalaliChange('start')}
+              placeholder="۱۴۰۵/۰۷/۱۶"
+              className="field num w-32 text-right"
+              dir="rtl"
+              aria-label="تاریخ شروع"
+            />
+          ) : (
+            <input
+              type="date"
+              value={value.startDate}
+              onChange={(e) =>
+                onChange({ startDate: e.target.value, endDate: value.endDate })
+              }
+              className="field num w-auto"
+              aria-label="تاریخ شروع"
+            />
+          )}
         </div>
 
         <span className="text-muted text-xs">→</span>
 
-        {/* Jalali end */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted">تا:</span>
-          <input
-            type="text"
-            inputMode="text"
-            value={jalaliEnd}
-            onChange={handleEndChange}
-            placeholder="۱۴۰۵/۰۶/۲۸"
-            className="field num w-32 text-right"
-            dir="rtl"
-          />
-        </div>
-
-        {/* Native Gregorian date inputs (for direct entry / validation) */}
-        <div className="flex items-center gap-2 ml-2">
-          <input
-            type="date"
-            value={value.startDate}
-            onChange={handleGregorianStartChange}
-            className="field num w-auto"
-            aria-label="تاریخ شمسی (Jalali)"
-            title="تاریخ شمسی"
-          />
-          <span className="text-muted text-xs">→</span>
-          <input
-            type="date"
-            value={value.endDate}
-            onChange={handleGregorianEndChange}
-            className="field num w-auto"
-            aria-label="تاریخ شمسی (Jalali)"
-            title="تاریخ شمسی"
-          />
+          {calendar === 'jalali' ? (
+            <input
+              type="text"
+              inputMode="text"
+              value={jalaliEnd}
+              onChange={handleJalaliChange('end')}
+              placeholder="۱۴۰۵/۰۸/۱۵"
+              className="field num w-32 text-right"
+              dir="rtl"
+              aria-label="تاریخ پایان"
+            />
+          ) : (
+            <input
+              type="date"
+              value={value.endDate}
+              onChange={(e) =>
+                onChange({ startDate: value.startDate, endDate: e.target.value })
+              }
+              className="field num w-auto"
+              aria-label="تاریخ پایان"
+            />
+          )}
         </div>
       </div>
 
       {parseError && (
         <p className="text-xs text-red-500">
-          فرمت تاریخ شمسی نامعتبر است. استفاده کنید: سال/ماه/روز
+          فرمت تاریخ شمسی نامعتبر است. سال/ماه/روز وارد کنید.
         </p>
       )}
     </div>
   );
-};
-
-/**
- * Format a Jalali date as short string (yyyy/mm/dd in Persian digits).
- */
-const formatJalaliShort = (j: { jy: number; jm: number; jd: number }): string => {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const toPersianDigits = (s: string) =>
-    s.split('').map((c) => {
-      const n = parseInt(c, 10);
-      if (isNaN(n)) return c;
-      return String.fromCharCode(0x06F0 + n);
-    }).join('');
-  return `${toPersianDigits(String(j.jy))}/${toPersianDigits(pad(j.jm))}/${toPersianDigits(pad(j.jd))}`;
 };
 
 export default JalaliDateRangePicker;

@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check } from '@phosphor-icons/react';
+import { AnimatePresence } from 'framer-motion';
+import {
+  TiltCard,
+  KineticHeading,
+  staggerContainer,
+  staggerItem,
+} from '../components/motion/kinetics';
 import { useLanguage } from '../hooks/useLanguage';
 
 const fadeUp = {
@@ -34,6 +41,7 @@ const HowToPage: React.FC = () => {
 
   return (
     <main className="relative pt-24">
+      <div className="aurora" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
       <div className="app-shell">
 
@@ -62,9 +70,12 @@ const HowToPage: React.FC = () => {
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary shadow-[0_4px_12px_-4px_rgb(var(--c-glow-secondary)/0.3)]">
                 <span className="text-lg font-bold">{t('about.how_to')}</span>
               </span>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl text-ink">
-                {t('howto.title')}
-              </h1>
+              <KineticHeading
+                level={1}
+                text={t('howto.title')}
+                className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl lg:text-5xl"
+                accentWords={[0]}
+              />
             </div>
             <p className="mt-4 max-w-2xl text-muted leading-relaxed sm:text-lg">
               {t('howto.subtitle')}
@@ -75,24 +86,32 @@ const HowToPage: React.FC = () => {
         {/* Steps */}
         <section className="relative z-10 py-16">
           <div className="mx-auto max-w-shell px-4 sm:px-6">
-            <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-              {(t('howto.steps') as unknown as any[]).map((step: any, i: number) => (
-                <Reveal key={step.num} delay={i * 0.08}>
-                  <div className="card-deep p-6 h-fit">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-secondary-ink text-sm font-bold shadow-[0_2px_8px_-2px_rgb(var(--c-glow-secondary)/0.3)]">
-                        {step.num}
-                      </span>
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
-                        <ArrowRight size={14} />
+            <motion.div
+              variants={staggerContainer(0.09)}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.2 }}
+              className="grid gap-10 md:grid-cols-2 lg:grid-cols-4"
+            >
+              {(t('howto.steps') as unknown as any[]).map((step: any) => (
+                <motion.div key={step.num} variants={staggerItem} className="h-full">
+                  <TiltCard max={8} className="h-full">
+                    <div className="card-deep h-fit p-6">
+                      <div className="mb-4 flex items-center justify-between">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-ink shadow-[0_2px_8px_-2px_rgb(var(--c-glow-secondary)/0.3)]">
+                          {step.num}
+                        </span>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
+                          <ArrowRight size={14} />
+                        </div>
                       </div>
+                      <h3 className="mb-2 text-lg font-semibold text-ink">{step.title}</h3>
+                      <p className="text-sm leading-relaxed text-muted">{step.desc}</p>
                     </div>
-                    <h3 className="text-lg font-semibold text-ink mb-2">{step.title}</h3>
-                    <p className="text-sm text-muted leading-relaxed">{step.desc}</p>
-                  </div>
-                </Reveal>
+                  </TiltCard>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -153,11 +172,22 @@ const HowToPage: React.FC = () => {
                         </svg>
                       </span>
                     </button>
-                    {openFaq === i && (
-                      <div className="border-t border-line/50 px-4 pb-4">
-                        <p className="text-sm text-muted leading-relaxed pt-3">{item.a}</p>
-                      </div>
-                    )}
+                    <AnimatePresence initial={false}>
+                      {openFaq === i && (
+                        <motion.div
+                          key="answer"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                          className="overflow-hidden border-t border-line/50"
+                        >
+                          <p className="px-4 pb-4 pt-3 text-sm leading-relaxed text-muted">
+                            {item.a}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </Reveal>
               ))}
