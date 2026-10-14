@@ -1,0 +1,8 @@
+◇ injected env (0) from .env
+◇ injected env (0) from .env
+MongoDB connection error: MongooseError: The `uri` parameter to `openUri()` must be a string, got "undefined". Make sure the first parameter to `mongoose.connect()` or `mongoose.createConnection()` is a string.
+    at NativeConnection.createClient (/Users/aref/alirezaAghaeeTeam/github/time-management/api/node_modules/mongoose/lib/drivers/node-mongodb-native/connection.js:234:11)
+    at NativeConnection.openUri (/Users/aref/alirezaAghaeeTeam/github/time-management/api/node_modules/mongoose/lib/connection.js:1081:34)
+    at Mongoose.connect (/Users/aref/alirezaAghaeeTeam/github/time-management/api/node_modules/mongoose/lib/mongoose.js:475:15)
+    at file:///Users/aref/alirezaAghaeeTeam/github/time-management/api/src/app.js:41:10
+Server is running on port 5000...

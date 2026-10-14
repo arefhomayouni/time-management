@@ -19,6 +19,7 @@ import {
   X,
   UserCircle,
   Handshake,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
@@ -164,6 +165,7 @@ const Navbar: React.FC = () => {
             {navLink('/dashboard', t('nav.dashboard'), ChartLineUp)}
             {navLink('/groups', t('nav.groups'), UsersThree)}
             {navLink('/payments', t('nav.payments'), Wallet)}
+            {navLink('/search', t('nav.search'), MagnifyingGlass)}
             {navLink('/about', t('nav.about'), Hexagon)}
             {navLink('/how-to', t('nav.how_to'), ArrowRight)}
             {navLink('/contact', t('nav.contact'), EnvelopeSimple)}
@@ -302,6 +304,7 @@ const Navbar: React.FC = () => {
                     ['/dashboard', t('nav.dashboard'), ChartLineUp],
                     ['/groups', t('nav.groups'), UsersThree],
                     ['/payments', t('nav.payments'), Wallet],
+                    ['/search', t('nav.search'), MagnifyingGlass],
                     ['/about', t('nav.about'), Hexagon],
                     ['/how-to', t('nav.how_to'), ArrowRight],
                     ['/contact', t('nav.contact'), EnvelopeSimple],

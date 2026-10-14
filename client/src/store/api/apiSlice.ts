@@ -54,6 +54,19 @@ export interface ReportRow {
   status: 'Underpaid' | 'Overpaid' | 'Exact';
 }
 
+export interface SearchResult {
+  title: string | null;
+  url: string;
+  author: string | null;
+  publishedDate: string | null;
+  highlights: string[];
+}
+
+export interface SearchResponse {
+  success: boolean;
+  data: { query: string; results: SearchResult[] };
+}
+
 export interface GroupReport {
   group: string;
   hourlyRate: number;
@@ -178,6 +191,11 @@ export const apiSlice = createApi({
       providesTags: ['TimeLog', 'Payment'],
     }),
 
+    // ---- Web search (Exa, server-side) ----
+    searchWeb: builder.mutation<SearchResponse, { q: string }>({
+      query: ({ q }) => ({ url: '/search', params: { q } }),
+    }),
+
     // ---- Payments ----
     getMyPayments: builder.query<
       { data: { payments: any[]; total: number } },
@@ -232,4 +250,5 @@ export const {
   useGetMyPaymentsQuery,
   useMakePaymentMutation,
   useGetGroupPaymentsQuery,
+  useSearchWebMutation,
 } = apiSlice;

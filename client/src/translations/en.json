@@ -209,6 +209,7 @@
     "dashboard": "Dashboard",
     "groups": "Groups",
     "payments": "Payments",
+    "search": "Web search",
     "profile": "Profile",
     "about": "About",
     "how_to": "How it works",
@@ -322,5 +323,18 @@
     "form_error": "Something went wrong. Please try again.",
     "faq_link": "See how it works",
     "about_link": "Learn more about TimeLuxe"
+  },
+  "search": {
+    "title": "Web search",
+    "subtitle": "Search the web and read the most relevant passages. Results are fetched on the server.",
+    "placeholder": "Search the web...",
+    "search_btn": "Search",
+    "searching": "Searching",
+    "results_for": "results for",
+    "no_results": "No results for",
+    "error_title": "Search failed",
+    "error": "Something went wrong while searching. Please try again.",
+    "hint": "Type a query to search the web. Results show a title, the source link, and a relevant passage.",
+    "powered_by": "Search powered by"
   }
 }

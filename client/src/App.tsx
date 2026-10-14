@@ -19,6 +19,7 @@ import PaymentsPage from './pages/PaymentsPage';
 import AboutPage from './pages/AboutPage';
 import HowToPage from './pages/HowToPage';
 import ContactPage from './pages/ContactPage';
+import SearchPage from './pages/SearchPage';
 
 /** Scrolls to top on every navigation */
 const ScrollToTop: React.FC = () => {
@@ -64,6 +65,9 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/payments" element={
           <ProtectedRoute><PaymentsPage /></ProtectedRoute>
+        } />
+        <Route path="/search" element={
+          <ProtectedRoute><SearchPage /></ProtectedRoute>
         } />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/how-to" element={<HowToPage />} />

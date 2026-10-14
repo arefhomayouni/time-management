@@ -7,6 +7,7 @@ import userRoutes from './routes/userRoutes.js';
 import timeRoutes from './routes/timeRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger.js';
 
@@ -46,6 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/search', searchRoutes);
 
 // Basic Route for testing
 app.get('/', (req, res) => {
