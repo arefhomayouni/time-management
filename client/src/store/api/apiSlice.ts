@@ -34,11 +34,28 @@ const baseQueryWithReauth: BaseQueryFn<
   return result;
 };
 
+/** Amounts recorded in one currency (never added to the other). */
+export interface CurrencySlice {
+  earned: number;
+  paid: number;
+  pending: number;
+}
+
+/** Per-currency breakdown returned alongside the legacy USD totals. */
+export interface CurrencyTotals {
+  usd: CurrencySlice;
+  irr: CurrencySlice;
+}
+
 export interface TimeSummary {
   totalHours: number;
+  /** @deprecated USD-only legacy total - use currencyTotals. */
   totalAmount: number;
+  /** @deprecated USD-only legacy total - use currencyTotals. */
   paidAmount: number;
+  /** @deprecated USD-only legacy total - use currencyTotals. */
   pendingAmount: number;
+  currencyTotals?: CurrencyTotals;
   entryCount: number;
   days: { date: string; hours: number; amount: number; entries: number }[];
 }
@@ -70,6 +87,9 @@ export interface SearchResponse {
 export interface GroupReport {
   group: string;
   hourlyRate: number;
+  hourlyRateCurrency: 'usd' | 'irr';
+  /** Alias of hourlyRateCurrency for older payloads. */
+  currency?: 'usd' | 'irr';
   budget: number;
   startDate: string;
   endDate: string;
@@ -163,7 +183,7 @@ export const apiSlice = createApi({
       query: (group) => ({ url: '/groups', method: 'POST', body: group }),
       invalidatesTags: ['Group'],
     }),
-    getGroupDetails: builder.query<{ data: { group: any } }, string>({
+    getGroupDetails: builder.query<{ data: { group: any; isManager?: boolean } }, string>({
       query: (id) => `/groups/${id}`,
       providesTags: ['Group'],
     }),
@@ -178,9 +198,37 @@ export const apiSlice = createApi({
       query: (invite) => ({ url: '/groups/invite', method: 'POST', body: invite }),
       invalidatesTags: ['Invitation'],
     }),
-    getGroupMembers: builder.query<{ data: { members: any[] } }, string>({
+    getGroupMembers: builder.query<
+      { data: { members: any[]; manager?: string; isManager?: boolean } },
+      string
+    >({
       query: (id) => `/groups/${id}/members`,
       providesTags: ['Group'],
+    }),
+    removeGroupMember: builder.mutation<{ success: boolean }, { id: string; userId: string }>({
+      query: ({ id, userId }) => ({
+        url: `/groups/${id}/members/${userId}`,
+        method: 'DELETE',
+      }),
+      // Removing a member changes the report rows too, not just group tags.
+      invalidatesTags: ['Group', 'Invitation', 'TimeLog', 'Payment'],
+    }),
+    getGroupInvitations: builder.query<
+      { data: { invitations: any[] } },
+      string
+    >({
+      query: (id) => `/groups/${id}/invitations`,
+      providesTags: ['Invitation'],
+    }),
+    cancelInvitation: builder.mutation<
+      { success: boolean },
+      { id: string; invitationId: string }
+    >({
+      query: ({ id, invitationId }) => ({
+        url: `/groups/${id}/invitations/${invitationId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Invitation'],
     }),
     getGroupReport: builder.query<
       { success: boolean; data: GroupReport },
@@ -198,7 +246,7 @@ export const apiSlice = createApi({
 
     // ---- Payments ----
     getMyPayments: builder.query<
-      { data: { payments: any[]; total: number } },
+      { data: { payments: any[]; total: number; totals?: { usd: number; irr: number } } },
       { startDate?: string; endDate?: string }
     >({
       query: (params = {}) => ({ url: '/payments/my-payments', params: params || {} }),
@@ -219,7 +267,14 @@ export const apiSlice = createApi({
       invalidatesTags: ['Payment', 'TimeLog', 'Summary', 'Group'],
     }),
     getGroupPayments: builder.query<
-      { data: { payments: any[]; total: number } },
+      {
+        data: {
+          payments: any[];
+          total: number;
+          totals?: { usd: number; irr: number };
+          currency?: 'usd' | 'irr';
+        };
+      },
       { groupId: string; startDate?: string; endDate?: string }
     >({
       query: ({ groupId, ...params }) => ({ url: `/payments/group/${groupId}`, params }),
@@ -246,6 +301,9 @@ export const {
   useUpdateGroupMutation,
   useInviteUserMutation,
   useGetGroupMembersQuery,
+  useRemoveGroupMemberMutation,
+  useGetGroupInvitationsQuery,
+  useCancelInvitationMutation,
   useGetGroupReportQuery,
   useGetMyPaymentsQuery,
   useMakePaymentMutation,

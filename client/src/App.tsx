@@ -14,6 +14,7 @@ import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
+import GroupCreatePage from './pages/GroupCreatePage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import PaymentsPage from './pages/PaymentsPage';
 import AboutPage from './pages/AboutPage';
@@ -59,6 +60,9 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/groups" element={
           <ProtectedRoute><GroupsPage /></ProtectedRoute>
+        } />
+        <Route path="/groups/new" element={
+          <ProtectedRoute><GroupCreatePage /></ProtectedRoute>
         } />
         <Route path="/groups/:id" element={
           <ProtectedRoute><GroupDetailPage /></ProtectedRoute>

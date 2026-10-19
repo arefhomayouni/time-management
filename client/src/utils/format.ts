@@ -67,6 +67,100 @@ export const moneyFmt = (
 
 export { moneyFmt as money };
 
+/** Rials per USD at the configured quote (Toman quote x 10). */
+const RIALS_PER_USD = IRR_RATE * RIALS_PER_TOMAN;
+
+const usdString = (v: number): string =>
+  `$${v.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const irrString = (v: number): string =>
+  `﷼ ${Math.round(v).toLocaleString('en-US')}`;
+
+export type DisplayMode = 'usd' | 'irr' | 'dual';
+export type CurrencyTotals = { usd?: number; irr?: number };
+
+/**
+ * Format an amount that was RECORDED in `currency`.
+ *
+ * The DB stores each amount in the unit of the rate that produced it: a
+ * 25,000,000 Rial entry is 25,000,000, not "25 million dollars". Passing it
+ * through moneyFmt's IRR mode would multiply it by RIALS_PER_USD again and
+ * inflate it 420,000x, so recorded amounts must be formatted here:
+ *   - usd mode  -> dollars (converted for display if the amount is in Rials)
+ *   - irr mode  -> Rials (converted for display if the amount is in dollars)
+ *   - dual      -> the recorded unit first, the other in parentheses
+ * Conversion is display-only; the stored number is never rewritten.
+ */
+export const moneyStored = (
+  n: number | undefined | null,
+  currency: RateCurrency,
+  mode: DisplayMode = 'dual',
+): string => {
+  const v = Number(n || 0);
+
+  if (currency === 'irr') {
+    if (mode === 'irr') return irrString(v);
+    if (mode === 'usd') return usdString(v / RIALS_PER_USD);
+    return `${irrString(v)} (${usdString(v / RIALS_PER_USD)})`;
+  }
+
+  if (mode === 'irr') return irrString(v * RIALS_PER_USD);
+  if (mode === 'usd') return usdString(v);
+  return `${usdString(v)} (${irrString(v * RIALS_PER_USD)})`;
+};
+
+/**
+ * Render per-currency totals in the current display mode.
+ *
+ *   usd/irr -> one number: both buckets converted to the chosen unit and
+ *              summed (the mode exists to express everything in one unit).
+ *   dual    -> each recorded currency in its own unit, side by side:
+ *              "﷼ 25,000,000 + $100.00" - no fake single total.
+ * Falls back to a legacy USD amount when the API sent no breakdown.
+ */
+export const formatCurrencyTotals = (
+  totals: CurrencyTotals | null | undefined,
+  mode: DisplayMode,
+  fallback: { amount?: number | null; currency?: RateCurrency } = {},
+): string => {
+  const usd = Number(totals?.usd || 0);
+  const irr = Number(totals?.irr || 0);
+
+  if (!totals) {
+    return moneyStored(fallback.amount, fallback.currency ?? 'usd', mode);
+  }
+
+  // Single-currency mode collapses everything into that unit. Conversion is
+  // display-only; the stored amounts are untouched.
+  if (mode !== 'dual') {
+    if (mode === 'usd') return usdString(usd + irr / RIALS_PER_USD);
+    return irrString(usd * RIALS_PER_USD + irr);
+  }
+
+  const parts: string[] = [];
+  if (Math.abs(usd) > 1e-9) parts.push(usdString(usd));
+  if (Math.abs(irr) > 1e-9) parts.push(irrString(irr));
+  return parts.length
+    ? parts.join(' + ')
+    : moneyStored(0, fallback.currency ?? 'usd', 'dual');
+};
+
+/** Current currency display mode from the ui slice. */
+export const useDisplayMode = (): DisplayMode =>
+  useAppSelector((s) => s.ui.currency);
+
+/** Hook version of moneyStored: uses the ui.currency display mode. */
+export const useStoredMoney = (): ((
+  n: number | undefined | null,
+  currency: RateCurrency,
+) => string) => {
+  const mode = useAppSelector((s) => s.ui.currency);
+  return (n, currency) => moneyStored(n, currency, mode);
+};
+
 /**
  * Format a number using the rate's OWN currency — the currency the user
  * typed the rate in. Entering USD always shows USD; entering IRR always
@@ -118,9 +212,20 @@ export const hours = (n: number | undefined | null): string => {
   return v % 1 === 0 ? String(v) : v.toFixed(1);
 };
 
+/**
+ * Parse a bare yyyy-mm-dd into a LOCAL date. JavaScript parses those as UTC
+ * midnight, so `new Date('2026-10-08')` is Oct 7 in every timezone behind
+ * UTC - date-only strings must be built from their parts.
+ */
+const fromISODate = (s: string): Date => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return new Date(s);
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+};
+
 /** yyyy-mm-dd for input[type=date] from a Date or ISO string. */
 export const toDateInput = (d: Date | string): string => {
-  const date = typeof d === 'string' ? new Date(d) : d;
+  const date = typeof d === 'string' ? fromISODate(d) : d;
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -133,10 +238,13 @@ export const monthRange = (year: number, month: number) => ({
   endDate: toDateInput(new Date(year, month, 0)),
 });
 
-/** Short human date like "Oct 12, 2026" (stable across locales). */
-export const shortDate = (d: string | Date): string => {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return date.toLocaleDateString('en-US', {
+/**
+ * Short human date like "Oct 12, 2026". Pass 'fa-IR' to get the same
+ * Gregorian date in Persian (۱۵ اکتبر ۲۰۲۶) for a Persian UI.
+ */
+export const shortDate = (d: string | Date, locale = 'en-US'): string => {
+  const date = typeof d === 'string' ? fromISODate(d) : d;
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

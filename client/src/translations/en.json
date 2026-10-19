@@ -156,7 +156,26 @@
     "role_manager": "Manager",
     "role_member": "Member",
     "group_created": "Group created",
-    "totals": "Totals"
+    "totals": "Totals",
+    "rate_currency": "Rate currency",
+    "name_placeholder": "e.g. Design team",
+    "invited_by": "Invited by {name}",
+    "invitation_pending": "Waiting for your answer",
+    "budget_short": "Budget",
+    "no_budget": "Not set",
+    "manage": "Manage",
+    "role_label": "Your role",
+    "created_on": "Created",
+    "budget_used": "Budget used",
+    "you": "you",
+    "remove_member": "Remove",
+    "remove_confirm": "Remove {name} from this group?",
+    "member_removed": "Member removed",
+    "invite_hint": "They must already have an account. Pending invites show up below.",
+    "email_invalid": "Enter a valid email",
+    "pending_invites": "Pending invitations",
+    "cancel_invite": "Cancel",
+    "invite_cancelled": "Invitation cancelled"
   },
   "group": {
     "not_found": "Group not found or you are not a member.",
@@ -180,7 +199,11 @@
     "remaining_summary": "Still to pay",
     "no_report": "No hours logged in this range.",
     "select_member": "Select a member",
-    "your_share": "Your hours here"
+    "your_share": "Your hours here",
+    "manager_hint": "Manage members, the hourly rate, reports and payouts.",
+    "member_hint": "Your group details and teammates.",
+    "payout_invalid": "Enter an amount greater than 0",
+    "member_note": "Time you log against this group is paid at this rate."
   },
   "payments": {
     "title": "Payments",
@@ -218,7 +241,8 @@
     "start_free": "Start free",
     "signed_out": "Signed out",
     "change_language": "Change language",
-    "toggle_theme": "Toggle theme"
+    "toggle_theme": "Toggle theme",
+    "back": "Back"
   },
   "about": {
     "title": "About TimeLuxe",
@@ -250,7 +274,10 @@
     "team3_bio": "Talks to every team that adopts TimeLuxe, learns what breaks in the real world, and turns that into better defaults.",
     "cta_title": "Ready to try it with your team?",
     "cta_sub": "Create a free account, invite your team, and log your first day - no card, no setup fee, no commitment.",
-    "contact_btn": "Get in touch"
+    "contact_btn": "Get in touch",
+    "about": "About",
+    "how_to": "How it works",
+    "contact": "Contact"
   },
   "howto": {
     "title": "How it works",
@@ -305,7 +332,28 @@
     "gregorian_hint": "International calendar used most of the world.",
     "choose": "Choose this calendar",
     "selected": "Currently selected",
-    "later": "Decide later"
+    "later": "Decide later",
+    "open": "Open calendar",
+    "prev_month": "Previous month",
+    "next_month": "Next month",
+    "today": "Today",
+    "month": "Month",
+    "year": "Year",
+    "navbar_title": "Choose calendar",
+    "navbar_current_jalali": "Persian (Jalali) calendar - switch to Gregorian",
+    "navbar_current_gregorian": "Gregorian calendar - switch to Persian",
+    "navbar_icon_jalali": "Open calendar - currently Persian (Jalali)",
+    "navbar_icon_gregorian": "Open calendar - currently Gregorian"
+  },
+  "date": {
+    "hint": "Enter a Persian date; it is stored as Gregorian.",
+    "invalid": "Invalid Persian date. Format: year/month/day"
+  },
+  "currency": {
+    "change": "Change currency",
+    "dual": "USD + IRR",
+    "usd": "US dollars",
+    "irr": "Iranian rials"
   },
   "contact": {
     "title": "Get in touch",

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarBlank } from '@phosphor-icons/react';
 import {
   toJalaaliDate,
@@ -8,6 +8,8 @@ import {
   formatJalaaliShort,
 } from '../../utils/jalali';
 import { useCalendar } from '../../hooks/useCalendar';
+import { useLanguage } from '../../hooks/useLanguage';
+import JalaliCalendar from './JalaliCalendar';
 
 interface DateFieldProps {
   /** Value as Gregorian ISO string (yyyy-mm-dd) - what the parent stores and sends to the API */
@@ -26,7 +28,11 @@ interface DateFieldProps {
  * DateField - single-calendar date input.
  *
  * Shows exactly ONE calendar, whichever the user picked in the navbar
- * toggle (ui.calendar): Jalali text entry, or the native Gregorian picker.
+ * toggle (ui.calendar):
+ *   - 'jalali'    -> Persian text entry PLUS the Persian month-grid picker
+ *                    (clicking the field or the calendar icon opens it, the
+ *                    same way the native Gregorian picker opens)
+ *   - 'gregorian' -> the native input[type=date] picker
  * Never both at once.
  *
  * Storage is always Gregorian ISO regardless of what is displayed.
@@ -42,6 +48,10 @@ const DateField: React.FC<DateFieldProps> = ({
   parseError,
 }) => {
   const { calendar } = useCalendar();
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  /** Anchors the portaled calendar panel to this field row. */
+  const rowRef = useRef<HTMLDivElement>(null);
 
   // Jalali text the user is typing (Persian or Latin digits)
   const [jalaliText, setJalaliText] = useState('');
@@ -67,11 +77,13 @@ const DateField: React.FC<DateFieldProps> = ({
 
     // Commit the current text even when it is not yet parseable, so the
     // user can type intermediate strings like "1405/07/" without the field
-    // snapping back. We only keep parseFail so we can show a hint; we never
-    // overwrite the user's input with the last good value.
+    // snapping back. We only flag a parse error once the input has all
+    // three segments (year/month/day) - an unfinished value is not a
+    // mistake yet, so no red text while typing.
     const parsed = parseJalaaliInput(raw);
     if (!parsed) {
-      setParseFail(raw.trim().length > 0);
+      const segments = raw.split(/[/-]/).length;
+      setParseFail(segments >= 3 && raw.trim().length > 0);
       return;
     }
     setParseFail(false);
@@ -91,32 +103,67 @@ const DateField: React.FC<DateFieldProps> = ({
         </label>
       )}
 
-      <div className="flex items-center gap-2">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line/70 bg-inset/70 text-muted"
-          aria-hidden="true"
-        >
-          <CalendarBlank size={16} weight="light" />
-        </span>
+      <div ref={rowRef} className="relative flex items-center gap-2">
+        {calendar === 'jalali' ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (disabled) return;
+              setOpen((o) => !o);
+            }}
+            disabled={disabled}
+            aria-label={
+              open
+                ? t('common.close')
+                : `${t('calendar.open')} (${t('calendar.jalali')})`
+            }
+            aria-expanded={open}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+              open
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-line/70 bg-inset/70 text-muted hover:border-accent/40 hover:text-accent'
+            }`}
+          >
+            <CalendarBlank size={16} weight="light" />
+          </button>
+        ) : (
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line/70 bg-inset/70 text-muted"
+            aria-hidden="true"
+          >
+            <CalendarBlank size={16} weight="light" />
+          </span>
+        )}
 
         {calendar === 'jalali' ? (
-          <input
-            type="text"
-            inputMode="text"
-            value={jalaliText}
-            onChange={handleJalaliTextChange}
-            onFocus={() => setParseFail(false)}
-            placeholder={shownPlaceholder}
-            className={`field num w-full ${
-              parseFail
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-200'
-                : ''
-            }`}
-            disabled={disabled}
-            dir="rtl"
-            style={{ textAlign: 'right' }}
-            aria-invalid={parseFail || undefined}
-          />
+          <>
+            <input
+              type="text"
+              inputMode="text"
+              value={jalaliText}
+              onChange={handleJalaliTextChange}
+              onFocus={() => setParseFail(false)}
+              onClick={() => !disabled && setOpen(true)}
+              placeholder={shownPlaceholder}
+              className={`field num w-full ${
+                parseFail
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-200'
+                  : ''
+              }`}
+              disabled={disabled}
+              dir="rtl"
+              style={{ textAlign: 'right' }}
+              aria-invalid={parseFail || undefined}
+            />
+            {open && !disabled && (
+              <JalaliCalendar
+                value={value}
+                anchorRef={rowRef}
+                onSelect={(iso) => onChange(iso)}
+                onClose={() => setOpen(false)}
+              />
+            )}
+          </>
         ) : (
           <input
             type="date"
@@ -130,16 +177,14 @@ const DateField: React.FC<DateFieldProps> = ({
 
       {parseFail && (
         <p className="text-xs text-red-500" aria-live="polite">
-          {parseError || 'تاریخ شمسی نامعتبر است. فرمت: سال/ماه/روز'}
+          {parseError || t('date.invalid')}
         </p>
       )}
 
       {error && !parseFail && <p className="text-xs text-accent">{error}</p>}
 
       {calendar === 'jalali' && !parseFail && !error && (
-        <p className="text-xs text-muted">
-          تاریخ شمسی وارد کنید؛ به‌صورت میلادی ذخیره می‌شود.
-        </p>
+        <p className="text-xs text-muted">{t('date.hint')}</p>
       )}
     </div>
   );

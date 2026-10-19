@@ -15,6 +15,15 @@ const paymentSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Amount is required']
   },
+  /**
+   * Unit `amount` is recorded in. Group payouts inherit the group's rate
+   * currency, personal payouts the user's personalRateCurrency. No default:
+   * legacy payments are resolved from their group/user on read.
+   */
+  currency: {
+    type: String,
+    enum: ['usd', 'irr']
+  },
   date: {
     type: Date,
     default: Date.now

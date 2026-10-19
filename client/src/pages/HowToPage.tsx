@@ -33,7 +33,7 @@ const Reveal = ({ children, delay = 0, className }: { children: React.ReactNode;
 };
 
 const HowToPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, tList } = useLanguage();
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -93,7 +93,7 @@ const HowToPage: React.FC = () => {
               viewport={{ once: true, amount: 0.2 }}
               className="grid gap-10 md:grid-cols-2 lg:grid-cols-4"
             >
-              {(t('howto.steps') as unknown as any[]).map((step: any) => (
+              {tList<{ num: string; title: string; desc: string }>('howto.steps').map((step) => (
                 <motion.div key={step.num} variants={staggerItem} className="h-full">
                   <TiltCard max={8} className="h-full">
                     <div className="card-deep h-fit p-6">

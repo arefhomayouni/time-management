@@ -1,10 +1,48 @@
 import Payment from '../models/Payment.js';
 import TimeLog from '../models/TimeLog.js';
 import Group from '../models/Group.js';
+import User from '../models/User.js';
 import { catchAsync } from 'vanta-api';
 import mongoose from 'mongoose';
 
 const round2 = (n) => Math.round(n * 100) / 100;
+
+/**
+ * A payment is denominated in its group's rate currency, or in the payee's
+ * personalRateCurrency for personal payouts. Legacy rows have no stored
+ * currency; derive it instead of mislabelling Rial payouts as dollars.
+ * Mutates the in-memory docs only (they are not saved afterwards).
+ */
+const resolvePaymentCurrencies = async (payments, userId) => {
+  const groupIds = [
+    ...new Set(payments.filter((p) => p.group).map((p) => String(p.group)))
+  ];
+  const groups = groupIds.length
+    ? await Group.find({ _id: { $in: groupIds } }).select('hourlyRateCurrency')
+    : [];
+  const groupCurrency = {};
+  groups.forEach((g) => {
+    groupCurrency[String(g._id)] = g.hourlyRateCurrency || 'usd';
+  });
+
+  const user = await User.findById(userId).select('personalRateCurrency');
+  const personalCurrency = user?.personalRateCurrency || 'usd';
+
+  payments.forEach((p) => {
+    p.currency =
+      p.currency ||
+      (p.group ? groupCurrency[String(p.group)] || 'usd' : personalCurrency);
+  });
+};
+
+/** Sum amounts per currency and attach the per-currency breakdown. */
+const currencyTotalsOf = (payments) => {
+  const totals = { usd: 0, irr: 0 };
+  payments.forEach((p) => {
+    totals[p.currency === 'irr' ? 'irr' : 'usd'] += p.amount;
+  });
+  return { usd: round2(totals.usd), irr: round2(totals.irr) };
+};
 
 const parseRange = (query) => {
   const { startDate, endDate } = query;
@@ -75,10 +113,21 @@ export const makePayment = catchAsync(async (req, res, next) => {
     });
   }
 
+  // The payout is in the same unit as the earnings it settles.
+  let currency = 'usd';
+  if (groupId) {
+    const group = await Group.findById(groupId).select('hourlyRateCurrency');
+    currency = group?.hourlyRateCurrency || 'usd';
+  } else {
+    const payee = await User.findById(userId).select('personalRateCurrency');
+    currency = payee?.personalRateCurrency || 'usd';
+  }
+
   const payment = await Payment.create({
     user: userId,
     group: groupId || null,
     amount,
+    currency,
     notes,
     paymentMethod: paymentMethod || 'transfer',
     date: endDate ? new Date(endDate) : new Date()
@@ -168,11 +217,12 @@ export const getMyPayments = catchAsync(async (req, res, next) => {
   if (range) filter.date = { $gte: range.start, $lte: range.end };
 
   const payments = await Payment.find(filter).sort('-date');
-  const total = payments.reduce((sum, p) => sum + p.amount, 0);
+  await resolvePaymentCurrencies(payments, req.user.id);
+  const totals = currencyTotalsOf(payments);
 
   res.status(200).json({
     success: true,
-    data: { payments, total: round2(total) }
+    data: { payments, total: totals.usd, totals }
   });
 });
 
@@ -223,10 +273,16 @@ export const getGroupPayments = catchAsync(async (req, res, next) => {
   const payments = await Payment.find(filter)
     .populate('user', 'username email')
     .sort('-date');
-  const total = payments.reduce((sum, p) => sum + p.amount, 0);
+
+  // Every payout in a group shares that group's rate currency.
+  const currency = group.hourlyRateCurrency || 'usd';
+  payments.forEach((p) => {
+    p.currency = p.currency || currency;
+  });
+  const totals = currencyTotalsOf(payments);
 
   res.status(200).json({
     success: true,
-    data: { payments, total: round2(total) }
+    data: { payments, total: totals.usd, totals, currency }
   });
 });

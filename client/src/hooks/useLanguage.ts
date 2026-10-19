@@ -15,26 +15,40 @@ export function useLanguage() {
   const language = useAppSelector((s) => s.ui.language);
   const dispatch = useAppDispatch();
 
-  const t = (path: string): string => {
-    const keys = path.split('.');
-    let result: any = translations[language];
-    for (const key of keys) {
+  /** Walk a dotted path inside one translation file. undefined if missing. */
+  const lookup = (lang: Language, path: string): any => {
+    let result: any = translations[lang];
+    for (const key of path.split('.')) {
       if (result && typeof result === 'object' && key in result) {
         result = result[key];
       } else {
-        // fall back to English before giving up
-        let fallback: any = translations.en;
-        for (const k of keys) {
-          if (fallback && typeof fallback === 'object' && k in fallback) {
-            fallback = fallback[k];
-          } else {
-            return path;
-          }
-        }
-        return typeof fallback === 'string' ? fallback : path;
+        return undefined;
       }
     }
-    return typeof result === 'string' ? result : path;
+    return result;
+  };
+
+  const t = (path: string): string => {
+    const result = lookup(language, path);
+    if (typeof result === 'string') return result;
+    // fall back to English before giving up
+    const fallback = lookup('en', path);
+    return typeof fallback === 'string' ? fallback : path;
+  };
+
+  /**
+   * Array entries (howto.steps, ...) from the translation files.
+   *
+   * t() is typed as string and returns the path itself for any non-string
+   * value, so an array path passed to t() becomes the literal string
+   * "howto.steps" - calling .map() on it throws and takes the whole app
+   * down. Callers that iterate a translated list must use this instead.
+   */
+  const tList = <T = any>(path: string): T[] => {
+    const result = lookup(language, path);
+    if (Array.isArray(result)) return result as T[];
+    const fallback = lookup('en', path);
+    return Array.isArray(fallback) ? (fallback as T[]) : [];
   };
 
   useEffect(() => {
@@ -44,6 +58,7 @@ export function useLanguage() {
 
   return {
     t,
+    tList,
     language,
     setLanguage: (lang: Language) => dispatch(setLanguage(lang)),
     isRTL: language === 'fa',

@@ -3,7 +3,12 @@ import toast from 'react-hot-toast';
 import { Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useGetMyPaymentsQuery } from '../store/api/apiSlice';
-import { useMoney, toDateInput } from '../utils/format';
+import {
+  useStoredMoney,
+  useDisplayMode,
+  formatCurrencyTotals,
+  toDateInput,
+} from '../utils/format';
 import { useCalendar } from '../hooks/useCalendar';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Reveal, EASE_OUT } from '../components/motion/kinetics';
@@ -11,7 +16,8 @@ import JalaliDateRangePicker from '../components/common/JalaliDateRangePicker';
 
 const PaymentsPage: React.FC = () => {
   const { t } = useLanguage();
-  const money = useMoney();
+  const storedMoney = useStoredMoney();
+  const displayMode = useDisplayMode();
   const { formatDate } = useCalendar();
   const reduce = useReducedMotion();
   const now = new Date();
@@ -59,7 +65,9 @@ const PaymentsPage: React.FC = () => {
         {isLoading ? (
           <div className="skeleton h-7 w-32" />
         ) : (
-          <span className="num-display text-2xl font-semibold text-accent">{money(total)}</span>
+          <span className="num-display text-2xl font-semibold text-accent">
+            {formatCurrencyTotals(data?.data?.totals, displayMode, { amount: total })}
+          </span>
         )}
       </div>
 
@@ -96,7 +104,7 @@ const PaymentsPage: React.FC = () => {
                     </td>
                     <td className="table-cell text-muted">{p.notes || t('common.no_notes')}</td>
                     <td className="table-cell num text-end font-semibold text-ink">
-                      {money(p.amount)}
+                      {storedMoney(p.amount, p.currency === 'irr' ? 'irr' : 'usd')}
                     </td>
                   </tr>
                 ))}

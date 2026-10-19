@@ -13,6 +13,9 @@ router.get('/my-groups', protect, groupController.getMyGroups);
 router.get('/:id', protect, groupController.getGroupById);
 router.patch('/:id', protect, validate(updateGroupSchema), groupController.updateGroup);
 router.get('/:id/members', protect, groupController.getGroupMembers);
+router.delete('/:id/members/:userId', protect, groupController.removeGroupMember);
+router.get('/:id/invitations', protect, groupController.getGroupInvitations);
+router.delete('/:id/invitations/:invitationId', protect, groupController.cancelGroupInvitation);
 router.get('/:id/report', protect, groupController.getGroupReport);
 
 export default router;

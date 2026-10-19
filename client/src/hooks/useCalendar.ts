@@ -19,6 +19,7 @@ export const useCalendar = (): {
   formatDate: (d: string | Date | null | undefined) => string;
 } => {
   const calendar = useAppSelector((s) => s.ui.calendar);
+  const language = useAppSelector((s) => s.ui.language);
 
   const formatDate = useCallback(
     (d: string | Date | null | undefined): string => {
@@ -36,9 +37,16 @@ export const useCalendar = (): {
         const j = toJalaaliDate(iso);
         if (j) return formatJalaaliFa(j);
       }
-      return shortDate(iso);
+      // Gregorian dates follow the interface language, so a Persian UI does
+      // not show English month names next to Persian labels. The -u-ca-gregory
+      // extension is required: plain 'fa-IR' formats with the PERSIAN calendar,
+      // which would turn a Gregorian-mode date into a Jalali one.
+      return shortDate(
+        iso,
+        language === 'fa' ? 'fa-IR-u-ca-gregory' : 'en-US'
+      );
     },
-    [calendar]
+    [calendar, language]
   );
 
   return { calendar, formatDate };

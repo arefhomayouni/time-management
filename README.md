@@ -1,183 +1,259 @@
-# ⏰ Time Management System
+<div align="center">
 
-A comprehensive time tracking and management system where users can:
-- Track daily working hours
-- Be part of multiple groups
-- Set group working rates
-- Generate monthly payment reports
-- Invite other users to groups
-- View personal and group payment histories
+# ⏳ TimeLuxe
 
-## 🏗️ **Architecture**
+**Time tracking and pay settlement that speaks both dollars and Rials.**
 
-**Backend:** Node.js + Express + MongoDB
-**Frontend:** React + Vanta.js for visual effects
-**Database:** MongoDB for users, groups, time records, and payments
+A full-stack workspace where people log hours, managers invite teams, every amount keeps
+its own currency, and payouts settle real hours instead of guessing in a spreadsheet.
 
-## 📁 **Project Structure**
+[![Node](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/Mongoose-9-47A248?logo=mongodb&logoColor=white)](https://mongoosejs.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+
+English · فارسی &nbsp;|&nbsp; USD · IRR · Dual &nbsp;|&nbsp; Jalali · Gregorian &nbsp;|&nbsp; Light · Dark
+
+</div>
+
+---
+
+## ✨ Why it exists
+
+Freelance teams in Iran and abroad work on the same job: one person tracks hours in
+dollars, another tracks them in Rials, and at the end of the month somebody has to work
+out who is owed what. Most tools either force everything into one currency or quietly
+multiply a Rial amount by the exchange rate — which inflates it 420,000×.
+
+TimeLuxe was built around one rule: **an amount always keeps the currency of the rate
+that produced it.** Dollars and Rials are never added into a fake total; the UI shows
+them side by side, and conversion happens only in the display mode you pick.
+
+## 🎯 Features
+
+<table>
+<tr><td width="50%">
+
+**⏱ Time tracking**
+- Log hours per day, personal or against a group
+- Monthly / 30-day / custom date ranges
+- Entries, totals and a day-by-day breakdown
+- One click to delete an entry
+
+**👥 Groups that a manager can actually manage**
+- Create a group with its own hourly rate + currency
+- Invite members by email, accept or decline from the list
+- See pending invitations, cancel them, remove members
+- Every member sees the roster; only the manager changes it
+
+</td><td width="50%">
+
+**💰 Money without guesswork**
+- USD and IRR stored separately, never merged
+- Report per member: hours, owed, paid, remaining, status
+- Record a payout — partial amounts settle the oldest hours first
+- Payout history per group and per person
+
+**🌍 Built for real users**
+- Full **Persian (فارسی)** UI, RTL layout and Persian month names
+- **Jalali (Shamsi)** or Gregorian calendar, pickable per user
+- Persian-digit date entry with a portal-based month grid
+- Light / dark themes, dual-currency display mode in the navbar
+
+</td></tr>
+</table>
+
+Also on board: **Exa-powered web search** inside the app, a public **Swagger UI** for the
+API, animated pages (framer-motion), and a hand-tuned design system (JetBrains Mono for
+numbers, tabular figures everywhere money appears).
+
+## 🧠 The currency model (the important part)
+
+```
+amount  = hours × rate            stored in the CURRENCY OF THAT RATE
+group entry  → group.hourlyRateCurrency   ('usd' | 'irr')
+personal     → user.personalRateCurrency  ('usd' | 'irr')
+payout       → same currency as the earnings it settles
+```
+
+- A 25,000,000 Rial entry is stored as `25000000` + `currency: 'irr'` — never converted.
+- Summaries return a per-currency breakdown (`currencyTotals: { usd, irr }`).
+- The navbar's display mode (`USD` / `IRR` / `Dual`) is the only place conversion happens,
+  and it is display-only: the numbers in the database never change.
+- Legacy rows without a stored currency resolve theirs from the related group or user.
+
+## 🛠️ Tech stack
+
+| Layer | Choice | Notes |
+|---|---|---|
+| API | **Express 5** (ESM) | JWT auth, Joi validation, Swagger docs |
+| Database | **MongoDB + Mongoose** | Users, groups, time logs, payments, invitations |
+| Client | **React 19 + TypeScript** | CRA, React Router 7, RTK Query |
+| State | **Redux Toolkit** | Auth + UI slices, RTK Query cache invalidation |
+| Forms | **Formik + Yup** | Validated, bilingual error messages |
+| Styling | **Tailwind CSS** | Custom design tokens, dark mode via `class` |
+| Motion | **framer-motion** | Staggered reveals, tilt cards, reduced-motion aware |
+| Dates | **jalaali-js** | Jalali ⇄ Gregorian conversion and Persian digit entry |
+| Search | **Exa** | Server-side only, key never reaches the browser |
+
+## 📁 Project structure
 
 ```
 time-management/
-├── api/                    # Backend API
-│   ├── src/
-│   │   ├── models/         # Mongoose schemas
-│   │   ├── routes/          # API routes
-│   │   ├── controllers/     # Business logic
-│   │   ├── middlewares/     # Authentication & validation
-│   │   └── config/          # Database & config
-│   ├── package.json
-│   └── README.md
-├── client/                  # Frontend React App
-│   ├── src/
-│   │   ├── components/      # UI components
-│   │   ├── pages/            # Application pages
-│   │   ├── hooks/            # Custom hooks
-│   │   ├── services/         # API services
-│   │   └── utils/            # Helper functions
-│   ├── vite.config.js
-│   └── package.json
-├── docker-compose.yml
-├── .env
-└── README.md
+├── api/                          # Express + Mongoose backend
+│   ├── server.js                 # boots app, dotenv, PORT
+│   └── src/
+│       ├── app.js                # middleware, routes, Swagger mount
+│       ├── config/swagger.js     # OpenAPI spec
+│       ├── models/               # User, Group, TimeLog, Payment, Invitation
+│       ├── controllers/          # users, groups, time, payments, search
+│       ├── routes/               # /api/users /groups /time /payments /search
+│       ├── middlewares/          # protect (JWT), validate (Joi)
+│       ├── validations/          # request schemas per route
+│       └── services/             # Exa search integration
+│
+└── client/                       # React + TypeScript frontend
+    └── src/
+        ├── pages/                # Home, Dashboard, Groups, Group detail,
+        │                         # Payments, Profile, Search, About, How-to, Contact
+        ├── components/
+        │   ├── common/           # JalaliCalendar, JalaliDateInput,
+        │   │                     # JalaliDateRangePicker, CalendarChooser
+        │   └── motion/           # TiltCard, Reveal, KineticHeading
+        ├── store/                # Redux store, apiSlice (RTK Query), slices
+        ├── hooks/                # useCalendar, useLanguage
+        ├── utils/                # format (money), jalali, groupSchema
+        └── translations/         # en.json, fa.json
 ```
 
-## 🔧 **Core Features**
+## 🚀 Getting started
 
-### **User Management**
-- **No Admin/Super Admin** - All users can be managers or normal users
-- **Personal management** for daily time tracking
-- **User invitations** to groups
-- **Multiple group membership** per user
+**Prerequisites:** Node.js 20+, npm, and a running MongoDB (`mongodb://localhost:27017`).
 
-### **Group System**
-- **Group managers** set working rates
-- **Shared rates** for group members
-- **Group-only visibility** for member payments
-- **Cross-group management** for user reports
+```bash
+git clone https://github.com/arefhomayouni/time-management.git
+cd time-management
+```
 
-### **Time Tracking**
-- **Daily time entry** for hours worked
-- **Monthly payment calculation** based on rates
-- **Payment history** for each user
-- **Detailed reports** from managers to users
+### 1. Backend
 
-### **Payment System**
-- **Monthly salary calculation**: `(hours worked × rate) - deductions`
-- **History tracking** for all payments
-- **Manager reports** with exact amounts
-- **Transparent billing** with deductions shown
-
-## 🏁 **Usage**
-
-### **Backend Setup**
 ```bash
 cd api
+cp .env.example .env         # then fill in the values
 npm install
-npm run dev
+npm run dev                  # nodemon → http://localhost:3001
 ```
 
-### **Frontend Setup**
+`api/.env`
+
+```env
+PORT=3001
+MONGODB_URI=mongodb://localhost:27017/time-management
+JWT_SECRET=generate-a-long-random-string
+EXA_API_KEY=                 # optional, enables the in-app web search
+```
+
+### 2. Frontend
+
 ```bash
 cd client
+cp .env.example .env
 npm install
-npm run dev
+npm start                    # → http://localhost:3000
 ```
 
-### **Docker Deployment**
-```bash
-docker compose up -d --build
+`client/.env`
+
+```env
+REACT_APP_API_URL=http://localhost:3001/api
+REACT_APP_BRAND=TimeLuxe
+# REACT_APP_IRR_RATE=42000   # Toman per USD for display conversion (1 Toman = 10 Rials)
 ```
 
-## 📊 **Data Flow**
+Then open **http://localhost:3000**, register an account, create a group and start
+logging hours. Interactive API docs live at **http://localhost:3001/api-docs**.
 
-1. **User Registration**: New users get auto-generated credentials
-2. **Group Management**: Users create/join groups with managers
-3. **Time Entry**: Daily tracking of worked hours
-4. **Monthly Processing**: Auto-calculate payments
-5. **Reporting**: Managers generate user payment reports
-6. **History**: All transactions stored for audit
+## 📡 API reference
 
-## 🔐 **Security**
+All protected routes expect `Authorization: Bearer <token>`. Full descriptions and
+request/response schemas are in the Swagger UI.
 
-- **JWT-based authentication**
-- **Role-based access control**
-- **Input validation & sanitization**
-- **Encrypted passwords**
-- **Rate limiting**
+<details>
+<summary><b>Users & authentication</b></summary>
 
-## 📈 **Performance**
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/users/register` | Create an account (rate + currency optional) |
+| POST | `/api/users/login` | Sign in, returns a JWT |
+| GET | `/api/users/me` | Current user |
+| PATCH | `/api/users/me` | Update username / email / personal rate |
+| GET | `/api/users/invitations` | Pending group invitations |
+</details>
 
-- **Real-time updates** using WebSockets
-- **MongoDB indexing** for fast queries
-- **Vanta.js visual effects** for smooth UX
-- **Optimized payment calculations**
+<details>
+<summary><b>Groups & membership</b></summary>
 
-## 📞 **API Endpoints**
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/groups` | Create a group (creator becomes manager) |
+| GET | `/api/groups/my-groups` | Groups you belong to (+ `isManager`) |
+| GET | `/api/groups/:id` | Group details |
+| PATCH | `/api/groups/:id` | Update name / rate / currency / budget |
+| GET | `/api/groups/:id/members` | Members (visible to all members) |
+| DELETE | `/api/groups/:id/members/:userId` | Remove a member (manager only) |
+| POST | `/api/groups/invite` | Invite by email (manager only, no duplicates) |
+| GET | `/api/groups/:id/invitations` | Pending invitations (manager only) |
+| DELETE | `/api/groups/:id/invitations/:invId` | Cancel an invitation (manager only) |
+| POST | `/api/groups/invitation/handle` | Accept or decline an invitation |
+| GET | `/api/groups/:id/report` | Per-member report for a date range |
+</details>
 
-### **Authentication**
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
+<details>
+<summary><b>Time & payments</b></summary>
 
-### **User Management**
-- `GET /api/users/profile`
-- `PUT /api/users/update`
-- `GET /api/users/invites`
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/time/logs` | Log hours (optionally against a group) |
+| GET | `/api/time/logs` | Your entries, filterable and sortable |
+| DELETE | `/api/time/logs?id=…` | Delete one of your entries |
+| GET | `/api/time/summary` | Totals for a range (+ per-currency breakdown) |
+| GET | `/api/time/earnings?month=&year=` | Monthly earnings |
+| POST | `/api/payments/pay` | Record a payout, settles hours oldest-first |
+| GET | `/api/payments/my-payments` | Payouts you received |
+| GET | `/api/payments/group/:groupId` | Payout history for a group (manager only) |
+| GET | `/api/search?q=` | Exa web search (optional API key) |
+</details>
 
-### **Group Management**
-- `POST /api/groups/create`
-- `GET /api/groups/:id`
-- `POST /api/groups/:id/invite`
-- `PUT /api/groups/:id/members`
+## ✅ Scripts
 
-### **Time Tracking**
-- `POST /api/time/entries`
-- `GET /api/time/user/:userId`
-- `GET /api/time/monthly/:userId/:month`
+| Where | Command | What it does |
+|---|---|---|
+| `api/` | `npm run dev` | API with auto-reload on :3001 |
+| `api/` | `npm start` | API without auto-reload |
+| `client/` | `npm start` | Dev server on :3000 with hot reload |
+| `client/` | `npm run build` | Production build (treated as CI: warnings are errors) |
+| `client/` | `npm test` | Jest test suite |
 
-### **Payment System**
-- `GET /api/payments/user/:userId`
-- `GET /api/payments/group/:groupId`
-- `POST /api/payments/calculate/:groupId`
+## 🗺️ Roadmap
 
-## 🎨 **Frontend Features**
+- [ ] Group deletion and rename for managers
+- [ ] Export a report period as CSV / PDF
+- [ ] Email notifications for invitations and payouts
+- [ ] Recurring budgets and monthly rollover
+- [ ] Unit tests for the payout-settlement engine
 
-- **Vanta.js integration** for background effects
-- **Responsive design** for all devices
-- **Real-time notifications**
-- **Interactive charts** for time tracking
-- **Dark/Light mode** support
-- **Multi-language support**
+## 🤝 Contributing
 
-## 🚀 **Development**
+Issues and pull requests are welcome. Please keep the currency rule intact: **never add,
+convert or overwrite an amount that carries a currency**, and keep new UI strings in both
+`en.json` and `fa.json`.
 
-This is a **work in progress** project. The backend will follow the same patterns as the EmployeeInfo system but with a focus on:
+## 📄 License
 
-1. **Simplified architecture** compared to the enterprise-level EmployeeInfo
-2. **Flexible group management** system
-3. **Transparent payment calculations**
-4. **User-friendly interface** with Vanta.js effects
+[ISC](https://opensource.org/licenses/ISC) © arefhomayouni
 
-## 🔄 **Comparison with EmployeeInfo**
-
-| Feature | EmployeeInfo | Time Management |
-|---------|--------------|-----------------|
-| Complexity | High (26+ tables) | Medium (6-8 collections) |
-| Architecture | Microservices | Monolith |
-| User Types | Multiple levels | Manager/User |
-| Rate System | Per-person | Group-based |
-| Visual Effects | None | Vanta.js |
-
-This makes Time Management more approachable while keeping core functionality intact.
-
-## 📝 **Next Steps**
-
-1. **Database design** with MongoDB schemas
-2. **API endpoint implementation**
-3. **Frontend component development**
-4. **Authentication integration**
-5. **Payment calculation logic**
-6. **Group management features**
-7. **Testing and deployment**
-
-The system will be built incrementally following agile principles, with continuous integration and thorough testing at each stage.
+<div align="center">
+Made with ⏳ for teams that bill in both dollars and Rials
+</div>

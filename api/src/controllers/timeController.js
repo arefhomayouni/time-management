@@ -6,11 +6,51 @@ import { catchAsync } from 'vanta-api';
 import mongoose from 'mongoose';
 
 /**
- * What has actually been paid for a set of logs.
+ * Every `amount` in the DB is denominated in the currency of the rate that
+ * produced it: group.hourlyRateCurrency for group entries, the user's
+ * personalRateCurrency for personal entries. Amounts from different
+ * currencies must never be added or converted implicitly, so the API groups
+ * them explicitly and the UI formats each group in its own unit.
+ *
+ * Legacy rows written before `currency` existed have no value stored;
+ * resolve it from the related group or user instead of assuming USD.
+ */
+const resolveLogCurrencies = async (logs, userId) => {
+  const groupIds = [
+    ...new Set(logs.filter((l) => l.group).map((l) => String(l.group)))
+  ];
+  const groups = groupIds.length
+    ? await Group.find({ _id: { $in: groupIds } }).select('hourlyRateCurrency')
+    : [];
+  const groupCurrency = {};
+  groups.forEach((g) => {
+    groupCurrency[String(g._id)] = g.hourlyRateCurrency || 'usd';
+  });
+
+  const user = await User.findById(userId).select('personalRateCurrency');
+  const personalCurrency = user?.personalRateCurrency || 'usd';
+
+  const currencyOf = (log) =>
+    log.currency ||
+    (log.group ? groupCurrency[String(log.group)] || 'usd' : personalCurrency);
+
+  // Mutating in memory is safe here: these documents are only used for the
+  // response being built, never saved.
+  logs.forEach((log) => {
+    log.currency = currencyOf(log);
+  });
+
+  return currencyOf;
+};
+
+/**
+ * What has actually been paid for a set of logs, per currency.
  * Partial payouts count: cash received in the period is matched against what
  * was earned in that same scope (one group, or personal entries) and never
  * exceeds it, so "owed" cannot go negative. Fully settled logs still count
  * when the payment that covered them falls outside the queried date range.
+ *
+ * Logs must already carry a resolved `currency` (see resolveLogCurrencies).
  */
 const computePaidAmount = async (logs, userId, dateFilter) => {
   const match = { user: new mongoose.Types.ObjectId(userId) };
@@ -27,18 +67,25 @@ const computePaidAmount = async (logs, userId, dateFilter) => {
 
   const earned = {};
   const settled = {};
+  const scopeCurrency = {};
   logs.forEach((log) => {
     const scope = log.group ? String(log.group) : 'personal';
     earned[scope] = (earned[scope] || 0) + log.amount;
     if (log.status === 'paid') settled[scope] = (settled[scope] || 0) + log.amount;
+    if (!scopeCurrency[scope]) scopeCurrency[scope] = log.currency || 'usd';
   });
 
-  let paid = 0;
+  const paid = { usd: 0, irr: 0 };
   Object.keys(earned).forEach((scope) => {
-    paid += Math.min(earned[scope], Math.max(cash[scope] || 0, settled[scope] || 0));
+    const currency = scopeCurrency[scope] || 'usd';
+    paid[currency] +=
+      Math.min(earned[scope], Math.max(cash[scope] || 0, settled[scope] || 0));
   });
 
-  return Math.round(paid * 100) / 100;
+  return {
+    usd: Math.round(paid.usd * 100) / 100,
+    irr: Math.round(paid.irr * 100) / 100,
+  };
 };
 
 /**
@@ -84,15 +131,18 @@ export const addTimeLog = catchAsync(async (req, res, next) => {
   const { date, hours, groupId } = req.body;
 
   let amount = 0;
+  let currency = 'usd';
   if (groupId) {
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
     amount = hours * group.hourlyRate;
+    currency = group.hourlyRateCurrency || 'usd';
   } else {
     const user = await User.findById(req.user.id);
     amount = hours * (user.personalRate || 0);
+    currency = user.personalRateCurrency || 'usd';
   }
 
   const log = await TimeLog.create({
@@ -100,7 +150,8 @@ export const addTimeLog = catchAsync(async (req, res, next) => {
     group: groupId || null,
     date: new Date(date),
     hours,
-    amount
+    amount,
+    currency
   });
 
   res.status(201).json({
@@ -164,6 +215,10 @@ export const getMyLogs = catchAsync(async (req, res, next) => {
     TimeLog.countDocuments(filter),
     TimeLog.find(filter).sort(sortObj).limit(pageLimit),
   ]);
+
+  // Tag every log with the unit its amount is in so the client can format it
+  // without guessing (and without converting 25,000,000 Rials into USD).
+  await resolveLogCurrencies(data, req.user.id);
 
   res.status(200).json({
     success: true,
@@ -243,10 +298,11 @@ export const getTimeSummary = catchAsync(async (req, res, next) => {
   }
 
   const logs = await TimeLog.find(filter).sort('date');
+  await resolveLogCurrencies(logs, req.user.id);
 
   const byDay = {};
   let totalHours = 0;
-  let totalAmount = 0;
+  const earned = { usd: 0, irr: 0 };
 
   logs.forEach((log) => {
     const key = log.date.toISOString().slice(0, 10);
@@ -258,24 +314,42 @@ export const getTimeSummary = catchAsync(async (req, res, next) => {
     byDay[key].entries += 1;
 
     totalHours += log.hours;
-    totalAmount += log.amount;
+    earned[log.currency === 'irr' ? 'irr' : 'usd'] += log.amount;
   });
 
-  const paidAmount = await computePaidAmount(logs, req.user.id, filter.date);
+  const paid = await computePaidAmount(logs, req.user.id, filter.date);
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  // Amounts are never summed across currencies; each one is reported in the
+  // unit it was earned in. Legacy top-level fields stay USD-only so older
+  // clients keep a sane number instead of a mixed-currency total.
+  const currencyTotals = {
+    usd: {
+      earned: round2(earned.usd),
+      paid: round2(paid.usd),
+      pending: round2(earned.usd - paid.usd)
+    },
+    irr: {
+      earned: round2(earned.irr),
+      paid: round2(paid.irr),
+      pending: round2(earned.irr - paid.irr)
+    }
+  };
 
   const days = Object.values(byDay).map((d) => ({
     ...d,
-    hours: Math.round(d.hours * 100) / 100,
-    amount: Math.round(d.amount * 100) / 100
+    hours: round2(d.hours),
+    amount: round2(d.amount)
   }));
 
   res.status(200).json({
     success: true,
     data: {
-      totalHours: Math.round(totalHours * 100) / 100,
-      totalAmount: Math.round(totalAmount * 100) / 100,
-      paidAmount: Math.round(paidAmount * 100) / 100,
-      pendingAmount: Math.round((totalAmount - paidAmount) * 100) / 100,
+      totalHours: round2(totalHours),
+      totalAmount: currencyTotals.usd.earned,
+      paidAmount: currencyTotals.usd.paid,
+      pendingAmount: currencyTotals.usd.pending,
+      currencyTotals,
       entryCount: logs.length,
       days
     }
@@ -343,18 +417,37 @@ export const getMonthlyEarnings = catchAsync(async (req, res, next) => {
     user: req.user.id,
     date: dateFilter
   });
+  await resolveLogCurrencies(logs, req.user.id);
 
-  const totalEarnings = logs.reduce((sum, log) => sum + log.amount, 0);
+  const round2 = (n) => Math.round(n * 100) / 100;
+  const earned = { usd: 0, irr: 0 };
   const totalHours = logs.reduce((sum, log) => sum + log.hours, 0);
-  const paidAmount = await computePaidAmount(logs, req.user.id, dateFilter);
+  logs.forEach((log) => {
+    earned[log.currency === 'irr' ? 'irr' : 'usd'] += log.amount;
+  });
+
+  const paid = await computePaidAmount(logs, req.user.id, dateFilter);
+  const currencyTotals = {
+    usd: {
+      earned: round2(earned.usd),
+      paid: round2(paid.usd),
+      pending: round2(earned.usd - paid.usd)
+    },
+    irr: {
+      earned: round2(earned.irr),
+      paid: round2(paid.irr),
+      pending: round2(earned.irr - paid.irr)
+    }
+  };
 
   res.status(200).json({
     success: true,
     data: {
-      totalEarnings: Math.round(totalEarnings * 100) / 100,
-      totalHours: Math.round(totalHours * 100) / 100,
-      paidAmount: Math.round(paidAmount * 100) / 100,
-      pendingAmount: Math.round((totalEarnings - paidAmount) * 100) / 100,
+      totalEarnings: currencyTotals.usd.earned,
+      totalHours: round2(totalHours),
+      paidAmount: currencyTotals.usd.paid,
+      pendingAmount: currencyTotals.usd.pending,
+      currencyTotals,
       logs
     }
   });

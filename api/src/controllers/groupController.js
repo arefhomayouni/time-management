@@ -120,10 +120,31 @@ export const inviteUser = catchAsync(async (req, res, next) => {
     });
   }
 
-  if (group.members.includes(user._id)) {
+  if (user._id.toString() === req.user.id) {
+    return res.status(400).json({
+      success: false,
+      message: 'You already manage this group'
+    });
+  }
+
+  // ObjectId comparison must go through equals(); a plain includes() compares
+  // references and silently reports "not a member" for the same id.
+  if (group.members.some((m) => m.equals(user._id))) {
     return res.status(400).json({
       success: false,
       message: 'User is already a member of this group'
+    });
+  }
+
+  const pending = await Invitation.findOne({
+    group: groupId,
+    toUser: user._id,
+    status: 'pending'
+  });
+  if (pending) {
+    return res.status(409).json({
+      success: false,
+      message: 'An invitation is already pending for this email'
     });
   }
 
@@ -185,6 +206,13 @@ export const handleInvitation = catchAsync(async (req, res, next) => {
     });
   }
 
+  if (invitation.status !== 'pending') {
+    return res.status(400).json({
+      success: false,
+      message: `Invitation was already ${invitation.status}`
+    });
+  }
+
   invitation.status = status;
   await invitation.save();
 
@@ -233,10 +261,20 @@ export const getMyGroups = catchAsync(async (req, res, next) => {
 
   const result = await features.execute();
 
+  // The client needs to know which groups it manages without parsing
+  // ObjectIds, so expose a plain boolean next to every group.
+  const data = result.data.map((group) => {
+    const view = group.toObject ? group.toObject() : group;
+    return {
+      ...view,
+      isManager: String(view.manager) === req.user.id
+    };
+  });
+
   res.status(200).json({
     success: true,
     count: result.count,
-    data: result.data
+    data
   });
 });
 
@@ -244,8 +282,8 @@ export const getMyGroups = catchAsync(async (req, res, next) => {
  * @swagger
  * /api/groups/{id}/members:
  *   get:
- *     summary: Get group members (Manager only)
- *     description: Lists all members of a group. Restricted to the group manager.
+ *     summary: Get group members (Members only)
+ *     description: Lists all members of a group. Visible to the manager and to members; only the manager can change the list.
  *     tags: [Groups]
  *     security:
  *       - bearerAuth: []
@@ -270,7 +308,7 @@ export const getMyGroups = catchAsync(async (req, res, next) => {
  *                       type: array
  *                       items: { $ref: '#/components/schemas/User' }
  *       403:
- *         description: Forbidden - only managers can view members
+ *         description: Forbidden - not a member of this group
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
@@ -286,19 +324,164 @@ export const getGroupMembers = catchAsync(async (req, res, next) => {
     return res.status(404).json({ success: false, message: 'Group not found' });
   }
 
-  if (group.manager.toString() !== req.user.id) {
+  const isManager = group.manager.toString() === req.user.id;
+  const isMember = group.members.some((m) => m.toString() === req.user.id);
+
+  // Everyone in the group can see who else is in it; only the manager can
+  // change the list. Non-members are not allowed to enumerate it.
+  if (!isManager && !isMember) {
     return res.status(403).json({
       success: false,
-      message: 'Only the group manager can see the members list'
+      message: 'You are not a member of this group'
     });
   }
 
-  const members = await User.find({ _id: { $in: group.members } });
+  const members = await User.find({ _id: { $in: group.members } })
+    .select('username email personalRate personalRateCurrency')
+    .sort('username');
 
   res.status(200).json({
     success: true,
-    data: { members }
+    data: {
+      members,
+      manager: String(group.manager),
+      isManager
+    }
   });
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/members/{userId}:
+ *   delete:
+ *     summary: Remove a member from a group (Manager only)
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Member removed
+ *       400:
+ *         description: The manager cannot remove themselves
+ *       403:
+ *         description: Forbidden - only managers can remove members
+ */
+export const removeGroupMember = catchAsync(async (req, res, next) => {
+  const { id, userId } = req.params;
+
+  const group = await Group.findById(id);
+  if (!group) {
+    return res.status(404).json({ success: false, message: 'Group not found' });
+  }
+
+  if (group.manager.toString() !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only the group manager can remove members'
+    });
+  }
+
+  if (group.manager.toString() === userId) {
+    return res.status(400).json({
+      success: false,
+      message: 'The manager cannot be removed from the group'
+    });
+  }
+
+  if (!group.members.some((m) => m.toString() === userId)) {
+    return res.status(404).json({
+      success: false,
+      message: 'That user is not a member of this group'
+    });
+  }
+
+  group.members = group.members.filter((m) => m.toString() !== userId);
+  await group.save();
+
+  // A removed member should not keep a stale pending invitation around.
+  await Invitation.deleteMany({ group: id, toUser: userId, status: 'pending' });
+
+  res.status(200).json({ success: true, data: { group } });
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/invitations:
+ *   get:
+ *     summary: List pending invitations for a group (Manager only)
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending invitations with the invitee's name and email
+ */
+export const getGroupInvitations = catchAsync(async (req, res, next) => {
+  const group = await Group.findById(req.params.id);
+  if (!group) {
+    return res.status(404).json({ success: false, message: 'Group not found' });
+  }
+
+  if (group.manager.toString() !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only the group manager can see pending invitations'
+    });
+  }
+
+  const invitations = await Invitation.find({
+    group: req.params.id,
+    status: 'pending'
+  })
+    .populate('toUser', 'username email')
+    .sort('-createdAt');
+
+  res.status(200).json({ success: true, data: { invitations } });
+});
+
+/**
+ * @swagger
+ * /api/groups/{id}/invitations/{invitationId}:
+ *   delete:
+ *     summary: Cancel a pending invitation (Manager only)
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Invitation cancelled
+ *       404:
+ *         description: Pending invitation not found in this group
+ */
+export const cancelGroupInvitation = catchAsync(async (req, res, next) => {
+  const { id, invitationId } = req.params;
+
+  const group = await Group.findById(id);
+  if (!group) {
+    return res.status(404).json({ success: false, message: 'Group not found' });
+  }
+
+  if (group.manager.toString() !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only the group manager can cancel invitations'
+    });
+  }
+
+  const deleted = await Invitation.findOneAndDelete({
+    _id: invitationId,
+    group: id,
+    status: 'pending'
+  });
+
+  if (!deleted) {
+    return res.status(404).json({
+      success: false,
+      message: 'Pending invitation not found'
+    });
+  }
+
+  res.status(200).json({ success: true });
 });
 
 /**
@@ -368,7 +551,10 @@ export const getGroupById = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    data: { group }
+    data: {
+      group,
+      isManager: group.manager.toString() === req.user.id
+    }
   });
 });
 
@@ -602,11 +788,16 @@ export const getGroupReport = catchAsync(async (req, res, next) => {
   }), { totalHours: 0, totalAmount: 0, paidAmount: 0 });
   totals.remainingAmount = Math.round((totals.totalAmount - totals.paidAmount) * 100) / 100;
 
+  // Logs inside one group all use the group's rate currency, so the report
+  // totals are safe to sum - the client just needs to know the unit.
+  const currency = group.hourlyRateCurrency || 'usd';
+
   res.status(200).json({
     success: true,
     data: {
       group: group.name,
       hourlyRate: group.hourlyRate,
+      hourlyRateCurrency: currency,
       budget: group.budget,
       startDate,
       endDate,

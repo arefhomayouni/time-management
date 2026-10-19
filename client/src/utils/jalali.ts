@@ -1,6 +1,6 @@
 import { toJalaali, toGregorian } from 'jalaali-js';
 
-const MONTHS_FA = [
+export const MONTHS_FA = [
   'فروردین',
   'اردیبهشت',
   'خرداد',
@@ -33,7 +33,7 @@ export const toGregorianISO = (
   return `${String(g.gy).padStart(4, '0')}-${String(g.gm).padStart(2, '0')}-${String(g.gd).padStart(2, '0')}`;
 };
 
-const toPersianDigits = (s: string): string =>
+export const toPersianDigits = (s: string): string =>
   s
     .split('')
     .map((c) => {
@@ -98,14 +98,36 @@ export const parseJalaaliInput = (
   return { jy, jm, jd };
 };
 
+/** Today's Jalali date (local timezone). */
+export const jalaliToday = (): { jy: number; jm: number; jd: number } => {
+  const now = new Date();
+  const j = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  return j ? { jy: j.jy, jm: j.jm, jd: j.jd } : { jy: 1400, jm: 1, jd: 1 };
+};
+
+/**
+ * Weekday column (0 = Saturday, Iranian week) of a Jalali date.
+ * jalaali-js gives us the Gregorian date; JS getDay() is 0=Sunday.
+ */
+export const jalaaliWeekdayIndex = (j: {
+  jy: number;
+  jm: number;
+  jd: number;
+}): number => {
+  const g = toGregorian(j.jy, j.jm, j.jd);
+  if (!g) return 0;
+  const dow = new Date(g.gy, g.gm - 1, g.gd).getDay();
+  return (dow + 1) % 7;
+};
+
 export const jalaaliYearRange = (
   length = 50,
   step = 1,
+  center?: number,
 ): { label: string; value: number }[] => {
-  const now = new Date();
-  const jNow = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-  const center = jNow ? jNow.jy : 1400;
-  const start = center - Math.floor(length / 2);
+  const jNow = jalaliToday();
+  const c = center ?? jNow.jy;
+  const start = c - Math.floor(length / 2);
   const years: { label: string; value: number }[] = [];
   for (let y = start; y < start + length; y += step) {
     const label = toPersianDigits(String(y));

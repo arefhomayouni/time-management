@@ -24,6 +24,17 @@ const timeLogSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  /**
+   * Unit `amount` is recorded in - inherited from the rate that produced it
+   * (group.hourlyRateCurrency, or the user's personalRateCurrency).
+   * Deliberately has no default: legacy logs predate this field, and a
+   * default would silently label IRR amounts as USD. Reads resolve a missing
+   * value from the related group/user instead.
+   */
+  currency: {
+    type: String,
+    enum: ['usd', 'irr']
+  },
   status: {
     type: String,
     enum: ['pending', 'paid'],

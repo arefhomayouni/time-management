@@ -18,7 +18,6 @@ import {
   List,
   X,
   UserCircle,
-  Handshake,
   MagnifyingGlass,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -30,7 +29,6 @@ import {
   openCalendarAsk,
 } from '../store/slices/uiSlice';
 import { useLanguage } from '../hooks/useLanguage';
-import { useMoney } from '../utils/format';
 import toast from 'react-hot-toast';
 
 const BRAND = process.env.REACT_APP_BRAND || 'TimeLuxe';
@@ -49,7 +47,6 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, language, setLanguage } = useLanguage();
-  const moneyMode = useMoney();
   const user = useAppSelector((s) => s.auth.user);
   const theme = useAppSelector((s) => s.ui.theme);
   const currency = useAppSelector((s) => s.ui.currency);
@@ -197,16 +194,14 @@ const Navbar: React.FC = () => {
           <button
             onClick={() => dispatch(openCalendarAsk())}
             className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
-            title={
+            title={t(
               calendar === 'jalali'
-                ? 'تقویم شمسی (برای میلادی)'
-                : 'Gregorian calendar (switch to Jalali)'
-            }
-            aria-label={
-              calendar === 'jalali'
-                ? 'Choose calendar (currently Jalali)'
-                : 'Choose calendar (currently Gregorian)'
-            }
+                ? 'calendar.navbar_current_jalali'
+                : 'calendar.navbar_current_gregorian'
+            )}
+            aria-label={`${t('calendar.navbar_title')}: ${t(
+              calendar === 'jalali' ? 'calendar.jalali' : 'calendar.gregorian'
+            )}`}
           >
             {calendar === 'jalali' ? (
               <CalendarCheck size={17} />
@@ -219,8 +214,14 @@ const Navbar: React.FC = () => {
           <button
             onClick={() => dispatch(cycleCurrency())}
             className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
-            title={currency === 'dual' ? 'USD + IRR' : currency === 'usd' ? 'USD' : 'IRR'}
-            aria-label="Change currency"
+            title={t(
+              currency === 'dual'
+                ? 'currency.dual'
+                : currency === 'usd'
+                  ? 'currency.usd'
+                  : 'currency.irr'
+            )}
+            aria-label={t('currency.change')}
           >
             {currency === 'dual' ? (
               <CurrencyCircleDollar size={17} weight="fill" />

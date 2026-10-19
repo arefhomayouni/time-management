@@ -21,7 +21,15 @@ import {
   useDeleteTimeLogMutation,
   useGetMyGroupsQuery,
 } from '../store/api/apiSlice';
-import { useMoney, moneyByRateCurrency, hours as fmtHours, monthRange, toDateInput } from '../utils/format';
+import {
+  useStoredMoney,
+  useDisplayMode,
+  formatCurrencyTotals,
+  moneyByRateCurrency,
+  hours as fmtHours,
+  monthRange,
+  toDateInput,
+} from '../utils/format';
 import { useCalendar } from '../hooks/useCalendar';
 import DateField from '../components/common/JalaliDateInput';
 import {
@@ -44,7 +52,8 @@ type RangeKey = 'this' | 'last' | '30' | 'custom';
 
 const Dashboard: React.FC = () => {
   const { t } = useLanguage();
-  const moneyMode = useMoney();
+  const storedMoney = useStoredMoney();
+  const displayMode = useDisplayMode();
   const { formatDate } = useCalendar();
   const reduce = useReducedMotion();
   const user = useAppSelector((s) => s.auth.user);
@@ -109,10 +118,30 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  /** Per-currency slice of the summary, e.g. { usd: 120, irr: 25000000 }. */
+  const totalsFor = (key: 'earned' | 'paid' | 'pending') => {
+    const t = summary?.currencyTotals;
+    return t ? { usd: t.usd[key], irr: t.irr[key] } : undefined;
+  };
+
+  // Amounts stay in the currency they were earned in; a mixed period shows
+  // both (never a single converted sum).
   const stats = [
-    { label: t('dashboard.monthly_earnings'), value: moneyMode(summary?.totalAmount), Icon: TrendUp },
+    {
+      label: t('dashboard.monthly_earnings'),
+      value: formatCurrencyTotals(totalsFor('earned'), displayMode, {
+        amount: summary?.totalAmount,
+      }),
+      Icon: TrendUp,
+    },
     { label: t('dashboard.hours_worked'), value: `${fmtHours(summary?.totalHours)} ${t('common.hours_unit')}`, Icon: Clock },
-    { label: t('dashboard.pending_amount'), value: moneyMode(summary?.pendingAmount), Icon: Hourglass },
+    {
+      label: t('dashboard.pending_amount'),
+      value: formatCurrencyTotals(totalsFor('pending'), displayMode, {
+        amount: summary?.pendingAmount,
+      }),
+      Icon: Hourglass,
+    },
     { label: t('dashboard.days_worked'), value: String(summary?.days.length || 0), Icon: Wallet },
   ];
 
@@ -121,8 +150,6 @@ const Dashboard: React.FC = () => {
     { key: 'last', label: t('dashboard.range_last_month') },
     { key: '30', label: t('dashboard.range_30') },
   ];
-
-  const personalRateCurrency: 'usd' | 'irr' = (user?.personalRateCurrency ?? 'usd') as 'usd' | 'irr';
 
   return (
     <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
@@ -319,7 +346,9 @@ const Dashboard: React.FC = () => {
                         {formatDate(log.date)}
                       </td>
                       <td className="table-cell num">{fmtHours(log.hours)}</td>
-                      <td className="table-cell num font-semibold text-ink">{moneyMode(log.amount)}</td>
+                      <td className="table-cell num font-semibold text-ink">
+                        {storedMoney(log.amount, log.currency === 'irr' ? 'irr' : 'usd')}
+                      </td>
                       <td className="table-cell text-muted">
                         {log.group ? t('groups.title') : t('dashboard.personal')}
                       </td>
