@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { Toaster } from 'react-hot-toast';
 import { useAppSelector } from './store/hooks';
 import { useLanguage } from './hooks/useLanguage';
+import { onPwaUpdate } from './pwa';
 import Navbar from './components/Navbar';
 import CalendarChooser from './components/common/CalendarChooser';
 import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute';
@@ -38,6 +39,39 @@ const ThemeSync: React.FC = () => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
   return null;
+};
+
+/** Offers a reload when the service worker installs a newer build. */
+const PwaUpdateBanner: React.FC = () => {
+  const [applyUpdate, setApplyUpdate] = useState<(() => void) | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => onPwaUpdate(({ apply }) => setApplyUpdate(() => apply)), []);
+
+  if (!applyUpdate || dismissed) return null;
+
+  return (
+    <div className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4">
+      <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-lg">
+        <span className="text-sm text-ink">A new version is ready.</span>
+        <button
+          type="button"
+          onClick={applyUpdate}
+          className="rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink"
+        >
+          Reload
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          aria-label="Dismiss update notice"
+          className="text-sm text-muted hover:text-ink"
+        >
+          Later
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const AppRoutes: React.FC = () => {
@@ -95,6 +129,7 @@ const AppRoutes: React.FC = () => {
           error: { iconTheme: { primary: 'rgb(var(--c-accent))', secondary: 'rgb(var(--c-accent-ink))' } },
         }}
       />
+      <PwaUpdateBanner />
       {/* Screen-reader route announcements */}
       <div aria-live="polite" className="sr-only">{t('common.loaded')}</div>
     </>

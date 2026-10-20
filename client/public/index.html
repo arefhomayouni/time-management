@@ -2,15 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#C2410C" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- Icons: SVG first, PNG/ICO fallbacks -->
+    <link rel="icon" href="%PUBLIC_URL%/icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" sizes="180x180" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <meta name="theme-color" content="#DB4214" />
+    <meta name="theme-color" content="#08080A" media="(prefers-color-scheme: dark)" />
+    <meta name="application-name" content="TimeLuxe" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TimeLuxe" />
+    <meta name="format-detection" content="telephone=no" />
+
     <meta
       name="description"
       content="TimeLuxe: log hours, track earnings, and settle pay. Date-filtered reports for managers, hourly rates and running totals for members."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>TimeLuxe: time tracking and pay settlement</title>
   </head>
   <body>

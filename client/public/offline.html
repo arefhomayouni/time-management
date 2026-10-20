@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#DB4214" />
+    <title>Offline — TimeLuxe</title>
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f0ebe4;
+        --surface: #faf6f0;
+        --line: #cdc8c0;
+        --ink: #1e1b18;
+        --muted: #78736c;
+        --accent: #db4214;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #08080a;
+          --surface: #121215;
+          --line: #303037;
+          --ink: #f5f3f0;
+          --muted: #969490;
+          --accent: #f88e79;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.6;
+      }
+      main {
+        width: 100%;
+        max-width: 420px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 32px 28px;
+        text-align: center;
+      }
+      img { width: 88px; height: 88px; border-radius: 22px; display: block; margin: 0 auto 20px; }
+      h1 { font-size: 22px; margin: 0 0 8px; letter-spacing: -0.02em; }
+      p { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
+      p.fa { direction: rtl; font-size: 14px; margin-bottom: 24px; }
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 22px;
+        font: inherit;
+        font-weight: 600;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(1.08); }
+      @media (prefers-color-scheme: dark) { button { color: #140c08; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="icons/icon-192.png" alt="TimeLuxe" />
+      <h1>You're offline</h1>
+      <p>TimeLuxe needs a connection to load your hours and payments. Pages you already visited stay available.</p>
+      <p class="fa">اتصال اینترنت قطع است. برای بارگذاری ساعت‌ها و پرداخت‌ها به اینترنت نیاز دارید.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

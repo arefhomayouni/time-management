@@ -38,17 +38,28 @@ const swaggerOptions = {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
 // Database Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected...'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    bufferTimeoutMS: 120000, // 120 seconds
+    serverSelectionTimeoutMS: 60000, // 60 seconds
+    connectTimeoutMS: 60000, // 60 seconds
+  })
+  .then(() => console.log("MongoDB connected..."))
+  .catch((err) =>
+    console.error("MongoDB connection error:", err)
+  );
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/search', searchRoutes);
+app.get('/health', (req, res) => {
 
+  res.status(200).json({message: 
+    'Time Management API is running...',
+  lastUpdate:"15:35"});
+});
 // Basic Route for testing
 app.get('/', (req, res) => {
   res.send('Time Management API is running...');

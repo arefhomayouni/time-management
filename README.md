@@ -175,6 +175,30 @@ REACT_APP_BRAND=TimeLuxe
 Then open **http://localhost:3000**, register an account, create a group and start
 logging hours. Interactive API docs live at **http://localhost:3001/api-docs**.
 
+## 📲 Installable PWA
+
+TimeLuxe ships as an installable app: a web manifest, maskable icons and a service
+worker that keeps visited pages available offline.
+
+| File | Purpose |
+|---|---|
+| `client/public/manifest.json` | Name, theme, icons, app shortcuts (Dashboard / Groups / Payments) |
+| `client/public/icons/` | SVG source plus 192/512 PNG icons, maskable variants, horizontal logo |
+| `client/public/sw.js` | Precached shell, network-first navigations, cache-first hashed assets |
+| `client/public/offline.html` | Fallback page for routes never visited |
+| `client/src/pwa.ts` | Registration + “new version ready” signal |
+
+Behaviour worth knowing:
+
+- The service worker is registered **in production builds only**, so the CRA dev
+  server and hot reload are untouched. Test it with `npm run build`, then serve
+  `client/build` (for example `npx serve -s build`) over `localhost`.
+- `/api/*`, non-GET requests and cross-origin traffic are never cached — data stays
+  live.
+- A rebuilt app installs a waiting worker; the UI shows a small “A new version is
+  ready” banner with a Reload action.
+- Bump `CACHE_VERSION` in `sw.js` when you change the precache list or caching rules.
+
 ## 📡 API reference
 
 All protected routes expect `Authorization: Bearer <token>`. Full descriptions and
