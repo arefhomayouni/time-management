@@ -1,42 +1,114 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---------------------------------------------------------------
- * Design tokens - cinematic redesign.
- *
- * Vibe: dark cinematic + 3D. Off-black OLED canvas, warm clay accent,
- * layered depth (double-bezel cards, tinted glows), aurora ambience,
- * spring-physics motion, parallax tilt cards.
- *
- * Type: Space Grotesk (display) + Geist (UI/body) + JetBrains Mono
- * (numbers). Inter is banned by the design system.
- * ------------------------------------------------------------- */
+/* ===============================================================
+   FONTS
+   Font files: client/public/assets/fonts/
+   =============================================================== */
+
+/* Yekan Plus */
+@font-face {
+  font-family: "YekanPlus";
+  src:
+    url("./assets/fonts/YEKAN-PLUS.woff2") format("woff2"),
+    url("./assets/fonts/YEKAN-PLUS.woff") format("woff"),
+    url("./assets/fonts/YEKANPLUS.TTF") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Dana Regular */
+@font-face {
+  font-family: "Dana";
+  src:
+    url("./assets/fonts/Gaj2-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Dana-Regular.woff") format("woff"),
+    url("./assets/fonts/Dana-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Dana Medium */
+@font-face {
+  font-family: "Dana";
+  src:
+    url("./assets/fonts/Dana-Medium.woff2") format("woff2"),
+    url("./assets/fonts/Dana-Medium.woff") format("woff"),
+    url("./assets/fonts/Dana-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Dana DemiBold */
+@font-face {
+  font-family: "Dana";
+  src:
+    url("./assets/fonts/Dana-DemiBold.woff2") format("woff2"),
+    url("./assets/fonts/Dana-DemiBold.woff") format("woff"),
+    url("./assets/fonts/Dana-DemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Dana Bold */
+@font-face {
+  font-family: "Dana";
+  src:
+    url("./assets/fonts/Dana-Bold.woff2") format("woff2"),
+    url("./assets/fonts/Dana-Bold.woff") format("woff"),
+    url("./assets/fonts/Dana-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Gaj2 */
+@font-face {
+  font-family: "Gaj2";
+  src:
+    url("./assets/fonts/Gaj2-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Gaj2-Regular.woff") format("woff"),
+    url("./assets/fonts/Gaj2-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ===============================================================
+   DESIGN TOKENS
+   =============================================================== */
+
 :root {
   /* Primary palette - warm paper light mode */
-  --c-bg: 240 235 228;        /* warm paper #F0EBE4 */
-  --c-surface: 250 246 240;  /* warm ivory surface */
-  --c-inset: 235 230 222;    /* inputs, code wells */
-  --c-line: 205 200 192;     /* hairlines */
-  --c-ink: 30 27 24;         /* warm near-black */
-  --c-muted: 120 115 108;    /* secondary text */
+  --c-bg: 240 235 228;
+  --c-surface: 250 246 240;
+  --c-inset: 235 230 222;
+  --c-line: 205 200 192;
+  --c-ink: 30 27 24;
+  --c-muted: 120 115 108;
 
-  /* Accent family */
-  --c-accent: 219 66 20;     /* clay #DB4214 - primary CTA */
+  /* Primary accent */
+  --c-accent: 219 66 20;
   --c-accent-ink: 255 255 255;
   --c-accent-soft: 252 230 220;
   --c-accent-line: 250 216 203;
 
-  /* Secondary accent - deep teal */
+  /* Secondary accent */
   --c-secondary: 20 100 90;
   --c-secondary-ink: 255 255 255;
 
-  /* Status */
+  /* Status colors */
   --c-success: 22 128 61;
   --c-warn: 161 98 7;
   --c-error: 180 40 30;
 
-  /* Glows (tinted shadows only, never neon) */
+  /* Glows */
   --c-glow: 219 66 20;
   --c-glow-secondary: 40 140 120;
 
@@ -45,21 +117,23 @@
   --c-surface-cool: 235 242 245;
   --c-surface-muted: 240 238 232;
 
-  /* Depth */
+  /* Shadows */
   --shadow-ambient: 0 20px 45px -24px rgba(40, 24, 12, 0.25);
-  --font-display: 'Space Grotesk Variable', 'Outfit Variable', ui-sans-serif, sans-serif;
-  --font-body: 'Geist Variable', 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* Typography */
+  --font-display: "YekanPlus", "Dana", sans-serif;
+  --font-body: "Dana", "YekanPlus", sans-serif;
 }
 
 .dark {
-  --c-bg: 8 8 10;            /* off-black (never pure #000) */
+  --c-bg: 8 8 10;
   --c-surface: 18 18 21;
   --c-inset: 28 28 33;
   --c-line: 48 48 55;
   --c-ink: 245 243 240;
   --c-muted: 150 148 144;
 
-  --c-accent: 248 142 121;   /* soft clay pop */
+  --c-accent: 248 142 121;
   --c-accent-ink: 20 12 8;
   --c-accent-soft: 38 22 17;
   --c-accent-line: 78 42 30;
@@ -81,6 +155,10 @@
   --shadow-ambient: 0 30px 60px -30px rgba(0, 0, 0, 0.85);
 }
 
+/* ===============================================================
+   BASE STYLES
+   =============================================================== */
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -90,32 +168,60 @@
   body {
     @apply bg-bg text-ink antialiased selection:bg-accent/20;
     font-family: var(--font-body);
+    font-weight: 400;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  /* All headings use YekanPlus */
+  h1,
+  h2{
     font-family: var(--font-display);
+    font-weight: 700;
     letter-spacing: -0.03em;
   }
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  /* Paragraphs use Dana */
+  p {
+    font-family: var(--font-body);
+    font-weight: 400;
+  }
 
-  /* Visible, consistent focus for keyboard users (AA) */
+  /* Other text elements inherit the body font */
+  label,
+  input,
+  textarea,
+  select,
+  button {
+    font-family: var(--font-body);
+  }
+
+  /* Accessible keyboard focus */
   :focus-visible {
     outline: 2px solid rgb(var(--c-accent));
     outline-offset: 3px;
     border-radius: 4px;
   }
 
-  /* Native controls inherit tokens */
-  input[type='date']::-webkit-calendar-picker-indicator {
+  /* Native date controls */
+  input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(var(--picker-invert, 0));
     cursor: pointer;
   }
-  .dark input[type='date']::-webkit-calendar-picker-indicator {
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
     --picker-invert: 1;
   }
 
+  /* Respect reduced-motion preferences */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -128,8 +234,12 @@
   }
 }
 
+/* ===============================================================
+   COMPONENTS
+   =============================================================== */
+
 @layer components {
-  /* ---- Form fields: warm inset, accent ring on focus ---- */
+  /* Form fields */
   .field {
     @apply w-full rounded-xl border border-line bg-inset px-3.5 py-2.5 text-sm text-ink
       placeholder:text-muted/70 transition-colors duration-150
@@ -140,7 +250,7 @@
     @apply block text-[13px] font-medium text-muted tracking-tight;
   }
 
-  /* ---- Button base: airtime, spring active ---- */
+  /* Buttons */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
       transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
@@ -156,17 +266,18 @@
       hover:border-accent/40 hover:text-accent hover:bg-inset;
   }
 
-  /* ---- Double-bezel card: outer shell + inner core ---- */
+  /* Cards */
   .card {
     @apply rounded-2xl bg-surface;
-    box-shadow: 0 1px 0 rgb(var(--c-line)), 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: 0 1px 0 rgb(var(--c-line)), 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   .card-deep {
     @apply card;
-    box-shadow: 0 1px 0 rgb(var(--c-line)),
-      0 4px 12px -4px rgba(0,0,0,0.06),
-      0 1px 2px -1px rgba(0,0,0,0.04);
+    box-shadow:
+      0 1px 0 rgb(var(--c-line)),
+      0 4px 12px -4px rgba(0, 0, 0, 0.06),
+      0 1px 2px -1px rgba(0, 0, 0, 0.04);
   }
 
   .card-warm {
@@ -196,12 +307,12 @@
     border-color: rgb(var(--c-secondary) / 0.3);
   }
 
-  /* ---- Pill badges, tighter ---- */
+  /* Badges */
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide;
   }
 
-  /* ---- Skeleton with warm shimmer ---- */
+  /* Loading skeleton */
   .skeleton {
     @apply rounded-xl bg-inset;
     background-image: linear-gradient(
@@ -214,6 +325,7 @@
     animation: shimmer 1.6s linear infinite;
   }
 
+  /* Tables */
   .table-head {
     @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted;
   }
@@ -222,20 +334,21 @@
     @apply px-4 py-3.5 text-sm;
   }
 
-  /* ---- Navbar island: floating pill, detached from top edge ---- */
+  /* Floating navbar */
   .navbar-island {
     @apply fixed top-4 left-1/2 -translate-x-1/2 z-50;
   }
 
-  /* ---- Stat tile: no card, just hairline separation ---- */
+  /* Statistics */
   .stat-tile {
     @apply px-1 py-5 lg:px-6;
   }
 }
 
-/* ---------------------------------------------------------------
- * Grain texture - fixed, pointer-events-none, only on body bg.
- * ------------------------------------------------------------- */
+/* ===============================================================
+   GRAIN TEXTURE
+   =============================================================== */
+
 .grain {
   position: fixed;
   inset: 0;
@@ -245,95 +358,109 @@
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 }
+
 .dark .grain {
   opacity: 0.035;
   mix-blend-mode: overlay;
 }
 
-/* Placed at root level so it sits behind content but above bg color */
+/* Content layer */
 .app-shell {
   position: relative;
   z-index: 1;
 }
 
-/* ---------------------------------------------------------------
- * Scrollbar - thin, themed.
- * ------------------------------------------------------------- */
+/* ===============================================================
+   SCROLLBAR
+   =============================================================== */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgb(var(--c-line));
   border-radius: 999px;
 }
+
 .dark ::-webkit-scrollbar-thumb {
   background: rgb(var(--c-muted) / 0.4);
 }
 
-/* ---------------------------------------------------------------
- * Selection & focus (kept from original).
- * ------------------------------------------------------------- */
+/* Text selection */
 ::selection {
   background: rgb(var(--c-accent) / 0.2);
 }
 
-/* ---------------------------------------------------------------
- * Tabular numerals everywhere money or hours are shown.
- * Add a subtle tracking for display-numbers.
- * ------------------------------------------------------------- */
+/* ===============================================================
+   NUMBERS
+   =============================================================== */
+
 .num {
-  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  font-family: "JetBrains Mono Variable", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 .num-display {
-  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  font-family: "JetBrains Mono Variable", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
   font-weight: 600;
 }
 
-/* ---------------------------------------------------------------
- * Reveal animation - used for scroll-entry. Heavier than before.
- * ------------------------------------------------------------- */
+/* ===============================================================
+   REVEAL ANIMATION
+   =============================================================== */
+
 .reveal {
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* ---------------------------------------------------------------
- * 3D stage - perspective containers and depth helpers.
- * Animate only transform/opacity (GPU-safe).
- * ------------------------------------------------------------- */
+/* ===============================================================
+   3D DEPTH
+   =============================================================== */
+
 .stage-3d {
   perspective: 1200px;
   perspective-origin: 50% 50%;
 }
 
-.depth-1 { transform-style: preserve-3d; }
+.depth-1 {
+  transform-style: preserve-3d;
+}
+
 .depth-z {
   transform: translateZ(var(--z, 0px));
 }
 
-/* Text that lifts off the plane inside a tilt card */
-.lift-1 { transform: translateZ(28px); }
-.lift-2 { transform: translateZ(52px); }
+/* Text depth inside tilt cards */
+.lift-1 {
+  transform: translateZ(28px);
+}
 
-/* ---------------------------------------------------------------
- * Aurora ambience - two slow drifting tinted blobs behind content.
- * Fixed + pointer-events-none so it never repaints on scroll.
- * ------------------------------------------------------------- */
+.lift-2 {
+  transform: translateZ(52px);
+}
+
+/* ===============================================================
+   AURORA AMBIENCE
+   =============================================================== */
+
 .aurora {
   position: fixed;
   inset: 0;
@@ -341,9 +468,10 @@
   pointer-events: none;
   overflow: hidden;
 }
+
 .aurora::before,
 .aurora::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 58vmax;
   height: 58vmax;
@@ -352,90 +480,158 @@
   opacity: 0.42;
   will-change: transform;
 }
+
 .aurora::before {
   top: -18vmax;
   left: -12vmax;
-  background: radial-gradient(circle at 35% 35%, rgb(var(--c-glow) / 0.55), transparent 62%);
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgb(var(--c-glow) / 0.55),
+    transparent 62%
+  );
   animation: aurora-drift 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
+
 .aurora::after {
   right: -16vmax;
   bottom: -20vmax;
-  background: radial-gradient(circle at 60% 60%, rgb(var(--c-glow-secondary) / 0.4), transparent 64%);
+  background: radial-gradient(
+    circle at 60% 60%,
+    rgb(var(--c-glow-secondary) / 0.4),
+    transparent 64%
+  );
   animation: aurora-drift-2 32s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
+
 .dark .aurora::before,
 .dark .aurora::after {
   opacity: 0.3;
 }
 
 @keyframes aurora-drift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(9vmax, 7vmax, 0) scale(1.15); }
-}
-@keyframes aurora-drift-2 {
-  from { transform: translate3d(0, 0, 0) scale(1.1); }
-  to   { transform: translate3d(-8vmax, -6vmax, 0) scale(0.95); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(9vmax, 7vmax, 0) scale(1.15);
+  }
 }
 
-/* ---------------------------------------------------------------
- * Perpetual micro-motions (isolated loops, transform-only).
- * ------------------------------------------------------------- */
-@keyframes float-soft {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(0, -10px, 0); }
+@keyframes aurora-drift-2 {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(-8vmax, -6vmax, 0) scale(0.95);
+  }
 }
-.float-soft { animation: float-soft 6s ease-in-out infinite; }
+
+/* ===============================================================
+   MICRO-ANIMATIONS
+   =============================================================== */
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+.float-soft {
+  animation: float-soft 6s ease-in-out infinite;
+}
 
 @keyframes pulse-dot {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%      { transform: scale(1.6); opacity: 0.35; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0.35;
+  }
 }
-.pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
+
+.pulse-dot {
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
 
 @keyframes marquee-x {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
+
 .marquee-track {
   display: flex;
   width: max-content;
   animation: marquee-x 38s linear infinite;
 }
-.marquee-track:hover { animation-play-state: paused; }
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
 
 @keyframes sheen-sweep {
-  from { transform: translateX(-120%) skewX(-18deg); }
-  to   { transform: translateX(220%) skewX(-18deg); }
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-18deg);
+  }
 }
+
 .sheen::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 45%;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.22), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.22),
+    transparent
+  );
   animation: sheen-sweep 4.5s ease-in-out infinite;
   pointer-events: none;
 }
 
 @keyframes spin-slow {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
-.spin-slow { animation: spin-slow 22s linear infinite; }
 
-/* ---------------------------------------------------------------
- * Sheen button - primary CTA with a sweeping highlight.
- * ------------------------------------------------------------- */
+.spin-slow {
+  animation: spin-slow 22s linear infinite;
+}
+
+/* ===============================================================
+   SHEEN BUTTON AND ELEVATION
+   =============================================================== */
+
 .btn-sheen {
   position: relative;
   overflow: hidden;
   isolation: isolate;
 }
 
-/* Tinted ambient elevation for hero surfaces (no neon) */
 .elevated {
-  box-shadow: var(--shadow-ambient), 0 1px 0 rgb(255 255 255 / 0.06) inset;
+  box-shadow:
+    var(--shadow-ambient),
+    0 1px 0 rgb(255 255 255 / 0.06) inset;
 }
+
+/* ===============================================================
+   REDUCED MOTION
+   =============================================================== */
 
 @media (prefers-reduced-motion: reduce) {
   .reveal {
@@ -443,6 +639,7 @@
     transform: none;
     transition: none;
   }
+
   .aurora::before,
   .aurora::after,
   .float-soft,
