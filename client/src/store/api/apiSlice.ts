@@ -4,15 +4,15 @@ import {
   BaseQueryFn,
   FetchArgs,
   FetchBaseQueryError,
-} from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../store';
-import { logout, User } from '../slices/authSlice';
+} from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../store";
+import { logout, User } from "../slices/authSlice";
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+  baseUrl: process.env.REACT_APP_API_URL || "http://localhost:3001/api",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
-    if (token) headers.set('authorization', `Bearer ${token}`);
+    if (token) headers.set("authorization", `Bearer ${token}`);
     return headers;
   },
 });
@@ -68,7 +68,7 @@ export interface ReportRow {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  status: 'Underpaid' | 'Overpaid' | 'Exact';
+  status: "Underpaid" | "Overpaid" | "Exact";
 }
 
 export interface SearchResult {
@@ -87,9 +87,9 @@ export interface SearchResponse {
 export interface GroupReport {
   group: string;
   hourlyRate: number;
-  hourlyRateCurrency: 'usd' | 'irr';
+  hourlyRateCurrency: "usd" | "irr";
   /** Alias of hourlyRateCurrency for older payloads. */
-  currency?: 'usd' | 'irr';
+  currency?: "usd" | "irr";
   budget: number;
   startDate: string;
   endDate: string;
@@ -103,122 +103,182 @@ export interface GroupReport {
 }
 
 export const apiSlice = createApi({
-  reducerPath: 'api',
+  reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['User', 'Group', 'TimeLog', 'Payment', 'Invitation', 'Summary'],
+  tagTypes: ["User", "Group", "TimeLog", "Payment", "Invitation", "Summary"],
   endpoints: (builder) => ({
     // ---- Auth ----
-    login: builder.mutation<{ token: string; data: { user: User } }, { email: string; password: string }>({
-      query: (credentials) => ({ url: '/users/login', method: 'POST', body: credentials }),
+    login: builder.mutation<
+      { token: string; data: { user: User } },
+      { email: string; password: string }
+    >({
+      query: (credentials) => ({
+        url: "/users/login",
+        method: "POST",
+        body: credentials,
+      }),
     }),
     register: builder.mutation<
       { token: string; data: { user: User } },
-      { username: string; email: string; password: string; personalRate: number; personalRateCurrency?: 'usd' | 'irr' }
+      {
+        username: string;
+        email: string;
+        password: string;
+        personalRate: number;
+        personalRateCurrency?: "usd" | "irr";
+      }
     >({
-      query: (userData) => ({ url: '/users/register', method: 'POST', body: userData }),
+      query: (userData) => ({
+        url: "/users/register",
+        method: "POST",
+        body: userData,
+      }),
     }),
     getMe: builder.query<{ data: { user: User } }, void>({
-      query: () => '/users/me',
-      providesTags: ['User'],
+      query: () => "/users/me",
+      providesTags: ["User"],
     }),
-    updateMe: builder.mutation<{ data: { user: User } }, Partial<User> & { personalRateCurrency?: 'usd' | 'irr' }>({
-      query: (data) => ({ url: '/users/me', method: 'PATCH', body: data }),
-      invalidatesTags: ['User'],
+    updateMe: builder.mutation<
+      { data: { user: User } },
+      Partial<User> & { personalRateCurrency?: "usd" | "irr" }
+    >({
+      query: (data) => ({ url: "/users/me", method: "PATCH", body: data }),
+      invalidatesTags: ["User"],
     }),
 
     // ---- Invitations ----
-    getMyInvitations: builder.query<
-      { data: { invitations: any[] } },
-      void
-    >({
-      query: () => '/users/invitations',
-      providesTags: ['Invitation'],
+    getMyInvitations: builder.query<{ data: { invitations: any[] } }, void>({
+      query: () => "/users/invitations",
+      providesTags: ["Invitation"],
     }),
     handleInvitation: builder.mutation<
       unknown,
-      { invitationId: string; status: 'accepted' | 'declined' }
+      { invitationId: string; status: "accepted" | "declined" }
     >({
-      query: (body) => ({ url: '/groups/invitation/handle', method: 'POST', body }),
-      invalidatesTags: ['Invitation', 'Group'],
+      query: (body) => ({
+        url: "/groups/invitation/handle",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Invitation", "Group"],
     }),
 
     // ---- Time ----
-    getTimeLogs: builder.query<{ data: any[]; count: number }, Record<string, string>>({
-      query: (params = {}) => ({ url: '/time/logs', params: params || {} }),
-      providesTags: ['TimeLog'],
+    getTimeLogs: builder.query<
+      { data: any[]; count: number },
+      Record<string, string>
+    >({
+      query: (params = {}) => ({ url: "/time/logs", params: params || {} }),
+      providesTags: ["TimeLog"],
     }),
     addTimeLog: builder.mutation<
       unknown,
       { date: string; hours: number; groupId?: string | null }
     >({
-      query: (log) => ({ url: '/time/logs', method: 'POST', body: log }),
-      invalidatesTags: ['TimeLog', 'Summary', 'Group'],
+      query: (log) => ({ url: "/time/logs", method: "POST", body: log }),
+      invalidatesTags: ["TimeLog", "Summary", "Group"],
     }),
     deleteTimeLog: builder.mutation<{ success: boolean }, string>({
-      query: (id) => ({ url: `/time/logs?id=${id}`, method: 'DELETE' }),
-      invalidatesTags: ['TimeLog', 'Summary'],
+      query: (id) => ({ url: `/time/logs?id=${id}`, method: "DELETE" }),
+      invalidatesTags: ["TimeLog", "Summary"],
     }),
     getTimeSummary: builder.query<
       TimeSummary,
       { startDate?: string; endDate?: string }
     >({
-      query: (params = {}) => ({ url: '/time/summary', params: params || {} }),
-      transformResponse: (res: { success: boolean; data: TimeSummary }) => res.data,
-      providesTags: ['Summary'],
+      query: (params = {}) => ({ url: "/time/summary", params: params || {} }),
+      transformResponse: (res: { success: boolean; data: TimeSummary }) =>
+        res.data,
+      providesTags: ["Summary"],
     }),
     getEarnings: builder.query<
-      { data: { totalEarnings: number; totalHours: number; paidAmount: number; pendingAmount: number } },
+      {
+        data: {
+          totalEarnings: number;
+          totalHours: number;
+          paidAmount: number;
+          pendingAmount: number;
+        };
+      },
       { month: number; year: number }
     >({
       query: ({ month, year }) => `/time/earnings?month=${month}&year=${year}`,
-      providesTags: ['Summary'],
+      providesTags: ["Summary"],
     }),
 
     // ---- Groups ----
     getMyGroups: builder.query<{ data: any[] }, void>({
-      query: () => ({ url: '/groups/my-groups' }),
-      providesTags: ['Group'],
+      query: () => ({ url: "/groups/my-groups" }),
+      providesTags: ["Group"],
     }),
-    createGroup: builder.mutation<{ data: { group: any } }, { name: string; hourlyRate: number; hourlyRateCurrency?: 'usd' | 'irr'; budget?: number }>({
-      query: (group) => ({ url: '/groups', method: 'POST', body: group }),
-      invalidatesTags: ['Group'],
+    createGroup: builder.mutation<
+      { data: { group: any } },
+      {
+        name: string;
+        hourlyRate: number;
+        hourlyRateCurrency?: "usd" | "irr";
+        budget?: number;
+      }
+    >({
+      query: (group) => ({ url: "/groups", method: "POST", body: group }),
+      invalidatesTags: ["Group"],
     }),
-    getGroupDetails: builder.query<{ data: { group: any; isManager?: boolean } }, string>({
+    getGroupDetails: builder.query<
+      { data: { group: any; isManager?: boolean } },
+      string
+    >({
       query: (id) => `/groups/${id}`,
-      providesTags: ['Group'],
+      providesTags: ["Group"],
     }),
     updateGroup: builder.mutation<
       { data: { group: any } },
-      { id: string; name?: string; hourlyRate?: number; hourlyRateCurrency?: 'usd' | 'irr'; budget?: number }
+      {
+        id: string;
+        name?: string;
+        hourlyRate?: number;
+        hourlyRateCurrency?: "usd" | "irr";
+        budget?: number;
+      }
     >({
-      query: ({ id, ...body }) => ({ url: `/groups/${id}`, method: 'PATCH', body }),
-      invalidatesTags: ['Group'],
+      query: ({ id, ...body }) => ({
+        url: `/groups/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Group"],
     }),
     inviteUser: builder.mutation<unknown, { email: string; groupId: string }>({
-      query: (invite) => ({ url: '/groups/invite', method: 'POST', body: invite }),
-      invalidatesTags: ['Invitation'],
+      query: (invite) => ({
+        url: "/groups/invite",
+        method: "POST",
+        body: invite,
+      }),
+      invalidatesTags: ["Invitation"],
     }),
     getGroupMembers: builder.query<
       { data: { members: any[]; manager?: string; isManager?: boolean } },
       string
     >({
       query: (id) => `/groups/${id}/members`,
-      providesTags: ['Group'],
+      providesTags: ["Group"],
     }),
-    removeGroupMember: builder.mutation<{ success: boolean }, { id: string; userId: string }>({
+    removeGroupMember: builder.mutation<
+      { success: boolean },
+      { id: string; userId: string }
+    >({
       query: ({ id, userId }) => ({
         url: `/groups/${id}/members/${userId}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
       // Removing a member changes the report rows too, not just group tags.
-      invalidatesTags: ['Group', 'Invitation', 'TimeLog', 'Payment'],
+      invalidatesTags: ["Group", "Invitation", "TimeLog", "Payment"],
     }),
     getGroupInvitations: builder.query<
       { data: { invitations: any[] } },
       string
     >({
       query: (id) => `/groups/${id}/invitations`,
-      providesTags: ['Invitation'],
+      providesTags: ["Invitation"],
     }),
     cancelInvitation: builder.mutation<
       { success: boolean },
@@ -226,9 +286,9 @@ export const apiSlice = createApi({
     >({
       query: ({ id, invitationId }) => ({
         url: `/groups/${id}/invitations/${invitationId}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Invitation'],
+      invalidatesTags: ["Invitation"],
     }),
     getGroupReport: builder.query<
       { success: boolean; data: GroupReport },
@@ -236,21 +296,49 @@ export const apiSlice = createApi({
     >({
       query: ({ id, startDate, endDate }) =>
         `/groups/${id}/report?startDate=${startDate}&endDate=${endDate}`,
-      providesTags: ['TimeLog', 'Payment'],
+      providesTags: ["TimeLog", "Payment"],
     }),
 
     // ---- Web search (Exa, server-side) ----
     searchWeb: builder.mutation<SearchResponse, { q: string }>({
-      query: ({ q }) => ({ url: '/search', params: { q } }),
+      query: ({ q }) => ({ url: "/search", params: { q } }),
+    }),
+
+    // -----change pass -----
+
+    changePassword: builder.mutation<
+      { success?: boolean; message?: string },
+      {
+        currentPassword: string;
+        newPassword: string;
+      }
+    >({
+      query: ({ currentPassword, newPassword }) => ({
+        url: "/users/change-password",
+        method: "PATCH",
+        body: {
+          currentPassword,
+          newPassword,
+        },
+      }),
     }),
 
     // ---- Payments ----
     getMyPayments: builder.query<
-      { data: { payments: any[]; total: number; totals?: { usd: number; irr: number } } },
+      {
+        data: {
+          payments: any[];
+          total: number;
+          totals?: { usd: number; irr: number };
+        };
+      },
       { startDate?: string; endDate?: string }
     >({
-      query: (params = {}) => ({ url: '/payments/my-payments', params: params || {} }),
-      providesTags: ['Payment'],
+      query: (params = {}) => ({
+        url: "/payments/my-payments",
+        params: params || {},
+      }),
+      providesTags: ["Payment"],
     }),
     makePayment: builder.mutation<
       { data: { settledLogs: number; leftover: number } },
@@ -263,8 +351,12 @@ export const apiSlice = createApi({
         notes?: string;
       }
     >({
-      query: (payment) => ({ url: '/payments/pay', method: 'POST', body: payment }),
-      invalidatesTags: ['Payment', 'TimeLog', 'Summary', 'Group'],
+      query: (payment) => ({
+        url: "/payments/pay",
+        method: "POST",
+        body: payment,
+      }),
+      invalidatesTags: ["Payment", "TimeLog", "Summary", "Group"],
     }),
     getGroupPayments: builder.query<
       {
@@ -272,13 +364,16 @@ export const apiSlice = createApi({
           payments: any[];
           total: number;
           totals?: { usd: number; irr: number };
-          currency?: 'usd' | 'irr';
+          currency?: "usd" | "irr";
         };
       },
       { groupId: string; startDate?: string; endDate?: string }
     >({
-      query: ({ groupId, ...params }) => ({ url: `/payments/group/${groupId}`, params }),
-      providesTags: ['Payment'],
+      query: ({ groupId, ...params }) => ({
+        url: `/payments/group/${groupId}`,
+        params,
+      }),
+      providesTags: ["Payment"],
     }),
   }),
 });
@@ -309,4 +404,5 @@ export const {
   useMakePaymentMutation,
   useGetGroupPaymentsQuery,
   useSearchWebMutation,
+  useChangePasswordMutation,
 } = apiSlice;
