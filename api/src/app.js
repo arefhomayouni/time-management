@@ -48,7 +48,12 @@ app.use('/api/time', timeRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/search', searchRoutes);
+app.get('/health', (req, res) => {
 
+  res.status(200).json({message: 
+    'Time Management API is running...',
+  lastUpdate:"15:35"});
+});
 // Basic Route for testing
 app.get('/', (req, res) => {
   res.send('Time Management API is running...');

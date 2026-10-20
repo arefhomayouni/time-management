@@ -7,6 +7,7 @@ import '@fontsource-variable/geist';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { registerServiceWorker } from './pwa';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -16,5 +17,8 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Progressive web app: offline shell + installable metadata (production only).
+registerServiceWorker();
 
 reportWebVitals();
