@@ -1,12 +1,12 @@
-import User from '../models/User.js';
-import Invitation from '../models/Invitation.js';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { catchAsync } from 'vanta-api';
+import User from "../models/User.js";
+import Invitation from "../models/Invitation.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { catchAsync } from "vanta-api";
 
 const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret123', {
-    expiresIn: '30d'
+  return jwt.sign({ id }, process.env.JWT_SECRET || "secret123", {
+    expiresIn: "30d",
   });
 };
 
@@ -50,7 +50,8 @@ const signToken = (id) => {
  *             schema: { $ref: '#/components/schemas/Error' }
  */
 export const register = catchAsync(async (req, res, next) => {
-  const { username, email, password, personalRate, personalRateCurrency } = req.body;
+  const { username, email, password, personalRate, personalRateCurrency } =
+    req.body;
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -59,7 +60,7 @@ export const register = catchAsync(async (req, res, next) => {
     email,
     password: hashedPassword,
     personalRate,
-    personalRateCurrency: personalRateCurrency || 'usd'
+    personalRateCurrency: personalRateCurrency || "usd",
   });
 
   const token = signToken(user._id);
@@ -68,8 +69,8 @@ export const register = catchAsync(async (req, res, next) => {
     success: true,
     token,
     data: {
-      user
-    }
+      user,
+    },
   });
 });
 
@@ -116,16 +117,16 @@ export const login = catchAsync(async (req, res, next) => {
   if (!email || !password) {
     return res.status(400).json({
       success: false,
-      message: 'Please provide email and password'
+      message: "Please provide email and password",
     });
   }
 
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select("+password");
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({
       success: false,
-      message: 'Incorrect email or password'
+      message: "Incorrect email or password",
     });
   }
 
@@ -135,8 +136,8 @@ export const login = catchAsync(async (req, res, next) => {
     success: true,
     token,
     data: {
-      user
-    }
+      user,
+    },
   });
 });
 
@@ -172,8 +173,8 @@ export const getMe = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     data: {
-      user: req.user
-    }
+      user: req.user,
+    },
   });
 });
 
@@ -218,19 +219,24 @@ export const getMe = catchAsync(async (req, res, next) => {
  */
 export const updateMe = catchAsync(async (req, res, next) => {
   const allowed = {};
-  for (const field of ['username', 'email', 'personalRate', 'personalRateCurrency']) {
+  for (const field of [
+    "username",
+    "email",
+    "personalRate",
+    "personalRateCurrency",
+  ]) {
     if (req.body[field] !== undefined) allowed[field] = req.body[field];
   }
   const user = await User.findByIdAndUpdate(req.user.id, allowed, {
     new: true,
-    runValidators: true
+    runValidators: true,
   });
 
   res.status(200).json({
     success: true,
     data: {
-      user
-    }
+      user,
+    },
   });
 });
 
@@ -250,14 +256,131 @@ export const updateMe = catchAsync(async (req, res, next) => {
 export const getMyInvitations = catchAsync(async (req, res, next) => {
   const invitations = await Invitation.find({
     toUser: req.user.id,
-    status: 'pending'
+    status: "pending",
   })
-    .populate('group', 'name hourlyRate')
-    .populate('fromUser', 'username')
-    .sort('-createdAt');
+    .populate("group", "name hourlyRate")
+    .populate("fromUser", "username")
+    .sort("-createdAt");
 
   res.status(200).json({
     success: true,
-    data: { invitations }
+    data: { invitations },
+  });
+});
+export const sendForgetCodeToEmail = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  // Generate a random code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const userUpdate = await User.findByIdAndUpdate(
+    user._id,
+    {
+      forgetPasswordToken: {
+        time: new Date(),
+        token: null,
+        code: code,
+      },
+    },
+    { new: true },
+  );
+  res.status(200).json({
+    success: true,
+    data: { code },
+  });
+});
+export const CheckForgetCodeToEmail = catchAsync(async (req, res, next) => {
+  const { email, code } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+  if (user.forgetPasswordToken.code != code) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid code",
+    });
+  }
+  if (
+    user.forgetPasswordToken.time == null ||
+    new Date() - user.forgetPasswordToken.time > 15 * 60 * 1000
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Code expired",
+    });
+  }
+  const token = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET || "secret123",
+    {
+      expiresIn: "15m",
+    },
+  );
+  const userUpdate = await User.findByIdAndUpdate(
+    user._id,
+    {
+      forgetPasswordToken: {
+        time: Date.now(),
+        token: token,
+        code: null,
+      },
+    },
+    { new: true },
+  );
+  res.status(200).json({
+    success: true,
+    data: { token },
+  });
+});
+ export const changePassword = catchAsync(async (req, res, next) => {
+  const { email, newPassword } = req.body;
+  const token = req.headers.authorization.split(" ")[1];
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+  if (!token || token !== user.forgetPasswordToken.token) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  if (hashedPassword === user.password) {
+    return res.status(400).json({
+      success: false,
+      message: "New password cannot be the same as the old password",
+    });
+  }
+  const newToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET || "secret123",
+    {
+      expiresIn: "15m",
+    },
+  );
+  user.password = hashedPassword;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    data: {
+      token: newToken,
+    },
+    message: "Password changed successfully",
   });
 });

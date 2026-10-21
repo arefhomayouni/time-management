@@ -36,6 +36,20 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  forgetPasswordToken: {
+  time:{
+      type: Date,
+      default: null
+    },
+    token:{
+      type: String,
+      default: null
+    },
+    code:{
+      type: String,
+      default: null 
+    }
   }
 }, {
   timestamps: true

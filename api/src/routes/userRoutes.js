@@ -11,5 +11,9 @@ router.post('/login', validate(loginSchema), userController.login);
 router.get('/me', protect, userController.getMe);
 router.patch('/me', protect, validate(updateMeSchema), userController.updateMe);
 router.get('/invitations', protect, userController.getMyInvitations);
+// forget routes
+router.post('/send-forget', userController.sendForgetCodeToEmail);
+router.post('/forget-check', userController.CheckForgetCodeToEmail);
+router.post("/forget-reset", protect, userController.changePassword);
 
 export default router;
