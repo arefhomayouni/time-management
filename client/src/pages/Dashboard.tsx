@@ -1,31 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { motion, useReducedMotion } from 'framer-motion';
-import {
-  PlusCircle,
-  TrendUp,
-  Clock,
-  Hourglass,
-  Trash,
-  Wallet,
-} from '@phosphor-icons/react';
+import { PlusCircle, TrendUp, Clock, Hourglass, Trash, Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useAppSelector } from '../store/hooks';
 import {
   useGetTimeSummaryQuery,
   useGetTimeLogsQuery,
-  useAddTimeLogMutation,
   useDeleteTimeLogMutation,
-  useGetMyGroupsQuery,
 } from '../store/api/apiSlice';
+import LogTimeForm from '../components/dashboard/LogTimeForm';
 import {
   useStoredMoney,
   useDisplayMode,
   formatCurrencyTotals,
-  moneyByRateCurrency,
   hours as fmtHours,
   monthRange,
   toDateInput,
@@ -37,16 +26,6 @@ import {
   staggerContainer,
   staggerItem,
 } from '../components/motion/kinetics';
-
-const EntrySchema = Yup.object().shape({
-  date: Yup.date().typeError('Pick a date').required('Date is required'),
-  hours: Yup.number()
-    .typeError('Enter a number')
-    .min(0.1, 'Minimum 0.1h')
-    .max(24, 'A day has 24 hours')
-    .required('Hours are required'),
-  groupId: Yup.string().nullable(),
-});
 
 type RangeKey = 'this' | 'last' | '30' | 'custom';
 
@@ -82,31 +61,9 @@ const Dashboard: React.FC = () => {
     limit: '100',
     sort: '-date',
   });
-  const { data: groupsData } = useGetMyGroupsQuery();
-  const [addTimeLog, { isLoading: adding }] = useAddTimeLogMutation();
   const [deleteTimeLog] = useDeleteTimeLogMutation();
 
-  const groups = groupsData?.data || [];
   const logs = logsData?.data || [];
-
-  const handleAdd = async (
-    values: { date: string; hours: number | string; groupId: string },
-    { setSubmitting, resetForm }: any
-  ) => {
-    try {
-      await addTimeLog({
-        date: values.date,
-        hours: Number(values.hours),
-        groupId: values.groupId || null,
-      }).unwrap();
-      toast.success(t('dashboard.entry_saved'));
-      resetForm();
-    } catch (err: any) {
-      toast.error(err?.data?.message || t('common.error'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm(t('dashboard.delete_confirm'))) return;
@@ -152,7 +109,7 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
       <div className="aurora" aria-hidden="true" />
       {/* Header + range control */}
       <motion.div
@@ -239,66 +196,11 @@ const Dashboard: React.FC = () => {
         {/* Log form */}
         <Reveal className="h-fit">
           <section className="card-deep h-fit p-6 elevated">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <PlusCircle size={19} weight="light" className="text-accent" />
-            {t('dashboard.log_time')}
-          </h2>
-          <Formik
-            initialValues={{
-              date: toDateInput(new Date()),
-              hours: '',
-              groupId: '',
-            }}
-            validationSchema={EntrySchema}
-            onSubmit={handleAdd}
-          >
-            {({ isSubmitting }) => (
-              <Form className="mt-5 space-y-4">
-                <div>
-                  <Field name="date">
-                    {({ field, form }: any) => (
-                      <DateField
-                        label={t('common.date')}
-                        value={field.value || ''}
-                        onChange={(iso) => form.setFieldValue('date', iso)}
-                      />
-                    )}
-                  </Field>
-                  <ErrorMessage name="date" component="p" className="mt-1.5 text-xs text-accent" />
-                </div>
-                <div>
-                  <label className="label" htmlFor="entry-hours">
-                    {t('common.hours')} <span className="text-muted">({t('common.hours_unit')})</span>
-                  </label>
-                  <Field
-                    id="entry-hours"
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    max="24"
-                    name="hours"
-                    className="field mt-1.5 num"
-                    placeholder="8"
-                  />
-                  <ErrorMessage name="hours" component="p" className="mt-1.5 text-xs text-accent" />
-                </div>
-                <div>
-                  <label className="label" htmlFor="entry-group">{t('dashboard.group')}</label>
-                  <Field as="select" id="entry-group" name="groupId" className="field mt-1.5">
-                    <option value="">{t('dashboard.group_personal')}</option>
-                    {groups.map((g: any) => (
-                      <option key={g._id} value={g._id}>
-                        {g.name} · {moneyByRateCurrency(g.hourlyRate, g.hourlyRateCurrency || 'usd')}/{t('common.hr')}
-                      </option>
-                    ))}
-                  </Field>
-                </div>
-                <button type="submit" disabled={isSubmitting || adding} className="btn-primary w-full py-3">
-                  {isSubmitting || adding ? t('common.loading') : t('dashboard.save_btn')}
-                </button>
-              </Form>
-            )}
-          </Formik>
+            <h2 className="flex items-center gap-2 font-semibold">
+              <PlusCircle size={19} weight="light" className="text-accent" />
+              {t('dashboard.log_time')}
+            </h2>
+            <LogTimeForm className="mt-5" />
           </section>
         </Reveal>
 

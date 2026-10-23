@@ -24,7 +24,7 @@
 @font-face {
   font-family: "Dana";
   src:
-    url("./assets/fonts/Gaj2-Regular.woff2") format("woff2"),
+    url("./assets/fonts/Dana-Regular.woff2") format("woff2"),
     url("./assets/fonts/Dana-Regular.woff") format("woff"),
     url("./assets/fonts/Dana-Regular.ttf") format("truetype");
   font-weight: 400;
@@ -180,6 +180,14 @@
     font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: -0.03em;
+  }
+
+  /* YekanPlus is a Persian face and its word space is far too narrow for
+     English, which runs the words of a Latin heading together. Keep the
+     Persian display face for fa and let Latin headings use Dana. */
+  html[lang='en'] h1,
+  html[lang='en'] h2 {
+    font-family: var(--font-body);
   }
   h3,
   h4,
@@ -627,6 +635,92 @@
   box-shadow:
     var(--shadow-ambient),
     0 1px 0 rgb(255 255 255 / 0.06) inset;
+}
+
+/* ===============================================================
+   MOBILE APP CHROME
+   Fixed top bar + bottom tab bar for the installed/PWA experience.
+   =============================================================== */
+
+:root {
+  --mobile-topbar-h: 3.5rem; /* 56px */
+  --mobile-tabbar-h: 3.75rem; /* 60px */
+}
+
+/* No blue tap flash on touch screens */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keep the page from rubber-banding behind the app chrome */
+body {
+  overscroll-behavior-y: none;
+}
+
+/*
+ * Page offsets: clear the fixed mobile chrome (top bar + safe area, tab bar
+ * + safe area), then snap back to the floating island spacing on desktop.
+ */
+.page-top {
+  padding-top: calc(
+    var(--mobile-topbar-h) + 1.25rem + env(safe-area-inset-top, 0px)
+  );
+}
+
+.page-bottom {
+  padding-bottom: calc(
+    var(--mobile-tabbar-h) + 4rem + env(safe-area-inset-bottom, 0px)
+  );
+}
+
+@media (min-width: 1024px) {
+  .page-top {
+    padding-top: 6rem; /* pt-24, matches the island navbar */
+  }
+  .page-bottom {
+    padding-bottom: 5rem; /* pb-20 */
+  }
+}
+
+/* iOS zooms the viewport when a focused field renders below 16px. */
+@media (max-width: 640px) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Fixed bars carry the notch/home-indicator insets */
+.app-topbar {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.app-tabbar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom sheet clears the home indicator */
+.sheet-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+/* Hide scrollbars on horizontal chip rows */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Toasts: centered above the tab bar on mobile, corner on desktop */
+@media (max-width: 1023px) {
+  [role="status"] {
+    bottom: calc(var(--mobile-tabbar-h) + 2.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
 }
 
 /* ===============================================================

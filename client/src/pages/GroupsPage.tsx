@@ -55,7 +55,7 @@ const GroupsPage: React.FC = () => {
   };
 
   return (
-    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
       <div className="aurora" aria-hidden="true" />
 
       <motion.div
@@ -143,12 +143,12 @@ const GroupsPage: React.FC = () => {
         </motion.section>
       )}
 
-      {/* Groups grid */}
+      {/* Groups grid - tablet+Desktop: grid, Mobile: cards */}
       <motion.div
         variants={staggerContainer(0.08)}
         initial={reduce ? false : 'hidden'}
         animate="show"
-        className="relative z-10 mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+        className="relative z-10 mt-8"
       >
         {groupsLoading ? (
           [0, 1, 2].map((i) => <div key={i} className="skeleton h-48 rounded-2xl" />)
@@ -163,65 +163,63 @@ const GroupsPage: React.FC = () => {
             </Link>
           </div>
         ) : (
-          groups.map((g: any) => {
-            const currency = (g.hourlyRateCurrency || 'usd') as 'usd' | 'irr';
-            const memberCount = Array.isArray(g.members) ? g.members.length : 0;
-            return (
-              <motion.section key={g._id} variants={staggerItem}>
-                <TiltCard max={5} className="h-full">
-                  <section className="card-deep flex h-full flex-col p-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h2 className="truncate font-semibold text-ink">{g.name}</h2>
-                        <span
-                          className={`badge mt-1.5 ${
-                            g.isManager
-                              ? 'bg-accent/10 text-accent'
-                              : 'bg-inset text-muted'
-                          }`}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.map((g: any) => {
+              const currency = (g.hourlyRateCurrency || 'usd') as 'usd' | 'irr';
+              const memberCount = Array.isArray(g.members) ? g.members.length : 0;
+              return (
+                <motion.section key={g._id} variants={staggerItem} className="h-full">
+                  <TiltCard max={5} className="h-full">
+                    <section className="card-deep flex h-full flex-col p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h2 className="truncate font-semibold text-ink">{g.name}</h2>
+                          <span
+                            className={`badge mt-1.5 ${g.isManager ? 'bg-accent/10 text-accent' : 'bg-inset text-muted'}`}
+                          >
+                            {g.isManager ? t('groups.role_manager') : t('groups.role_member')}
+                          </span>
+                        </div>
+                        <div className="num shrink-0 text-end text-sm text-ink">
+                          {moneyByRateCurrency(g.hourlyRate, currency)}
+                          <span className="text-muted">/{t('common.hr')}</span>
+                        </div>
+                      </div>
+
+                      <dl className="mt-3 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between gap-3">
+                          <dt className="text-muted">{t('groups.budget_short')}</dt>
+                          <dd className="num text-ink">
+                            {g.budget
+                              ? moneyByRateCurrency(g.budget, currency)
+                              : t('groups.no_budget')}
+                          </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <dt className="text-muted">{t('groups.members_title')}</dt>
+                          <dd className="num text-ink">{memberCount}</dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <dt className="text-muted">{t('groups.rate_currency')}</dt>
+                          <dd className="text-ink">{currency === 'irr' ? 'IRR' : 'USD'}</dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-auto flex items-center gap-2.5 pt-4">
+                        <Link
+                          to={`/groups/${g._id}`}
+                          className="btn-ghost inline-flex items-center gap-1.5 text-sm"
                         >
-                          {g.isManager ? t('groups.role_manager') : t('groups.role_member')}
-                        </span>
+                          {g.isManager ? t('groups.manage') : t('groups.view_details')}
+                          <ArrowRight size={14} className="rtl:rotate-180" />
+                        </Link>
                       </div>
-                      <div className="num shrink-0 text-end text-sm text-ink">
-                        {moneyByRateCurrency(g.hourlyRate, currency)}
-                        <span className="text-muted">/{t('common.hr')}</span>
-                      </div>
-                    </div>
-
-                    <dl className="mt-4 space-y-2 text-xs">
-                      <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted">{t('groups.budget_short')}</dt>
-                        <dd className="num text-ink">
-                          {g.budget
-                            ? moneyByRateCurrency(g.budget, currency)
-                            : t('groups.no_budget')}
-                        </dd>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted">{t('groups.members_title')}</dt>
-                        <dd className="num text-ink">{memberCount}</dd>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted">{t('groups.rate_currency')}</dt>
-                        <dd className="text-ink">{currency === 'irr' ? 'IRR' : 'USD'}</dd>
-                      </div>
-                    </dl>
-
-                    <div className="mt-auto flex items-center gap-2.5 pt-5">
-                      <Link
-                        to={`/groups/${g._id}`}
-                        className="btn-ghost inline-flex items-center gap-1.5 text-sm"
-                      >
-                        {g.isManager ? t('groups.manage') : t('groups.view_details')}
-                        <ArrowRight size={14} className="rtl:rotate-180" />
-                      </Link>
-                    </div>
-                  </section>
-                </TiltCard>
-              </motion.section>
-            );
-          })
+                    </section>
+                  </TiltCard>
+                </motion.section>
+              );
+            })}
+          </div>
         )}
       </motion.div>
     </main>

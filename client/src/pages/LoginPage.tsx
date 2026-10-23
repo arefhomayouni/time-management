@@ -147,7 +147,7 @@ const LoginPage: React.FC = () => {
                           to="/forgot-password"
                           className="text-sm font-medium text-accent transition-colors hover:underline"
                         >
-                          Forgot password?
+                          {t("auth.forgot_link")}
                         </Link>
                       </div>
                     </div>
