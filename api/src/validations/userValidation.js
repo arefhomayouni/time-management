@@ -13,6 +13,13 @@ export const loginSchema = Joi.object({
   password: Joi.string().required()
 });
 
+// Authenticated password change from the profile screen. The current password
+// is required so a hijacked session cannot rotate the credential silently.
+export const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string().min(8).required()
+});
+
 // Note: role is intentionally not updatable here. Self-promoting to manager
 // would grant payout powers, so role changes must go through an admin flow.
 export const updateMeSchema = Joi.object({

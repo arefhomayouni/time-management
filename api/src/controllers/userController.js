@@ -267,6 +267,45 @@ export const getMyInvitations = catchAsync(async (req, res, next) => {
     data: { invitations },
   });
 });
+/**
+ * Change the password of the signed-in user. Requires the current password so
+ * a stolen session cannot rotate the credential on its own.
+ */
+export const changeMyPassword = catchAsync(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  if (!(await bcrypt.compare(currentPassword, user.password))) {
+    return res.status(401).json({
+      success: false,
+      message: "Current password is incorrect",
+    });
+  }
+
+  if (await bcrypt.compare(newPassword, user.password)) {
+    return res.status(400).json({
+      success: false,
+      message: "New password cannot be the same as the old password",
+    });
+  }
+
+  user.password = await bcrypt.hash(newPassword, 12);
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+    data: { token: signToken(user._id) },
+  });
+});
+
 export const sendForgetCodeToEmail = catchAsync(async (req, res, next) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
