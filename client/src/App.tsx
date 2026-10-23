@@ -22,6 +22,10 @@ import AboutPage from './pages/AboutPage';
 import HowToPage from './pages/HowToPage';
 import ContactPage from './pages/ContactPage';
 import SearchPage from './pages/SearchPage';
+import MobileTopBar from './components/mobile/MobileTopBar';
+import MobileTabBar from './components/mobile/MobileTabBar';
+import MoreSheet from './components/mobile/MoreSheet';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 /** Scrolls to top on every navigation */
 const ScrollToTop: React.FC = () => {
@@ -74,18 +78,121 @@ const PwaUpdateBanner: React.FC = () => {
   );
 };
 
-const AppRoutes: React.FC = () => {
+/** The subset of the non-standard Chrome event we rely on. */
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice?: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
+
+const useInstallPrompt = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    null
+  );
+
+  useEffect(() => {
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+  }, []);
+
+  const install = () => {
+    if (!deferredPrompt) return;
+    void deferredPrompt.prompt();
+    setDeferredPrompt(null);
+  };
+
+  return { install, deferredPrompt };
+};
+
+/**
+ * Install prompt banner. Lives inside <Provider> because it reads the
+ * active language through useLanguage().
+ */
+const InstallPromptBanner: React.FC = () => {
   const { t } = useLanguage();
+  const { install, deferredPrompt } = useInstallPrompt();
+
+  // Touch devices get the native app chrome instead of a desktop banner.
+  const isPointerFine =
+    typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+
+  if (!deferredPrompt || !isPointerFine) return null;
+
+  return (
+    <div className="fixed inset-x-0 top-4 z-[55] flex justify-center px-4" role="region" aria-label={t('nav.install_app')}>
+      <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-lg">
+        <span className="text-sm text-ink">{t('nav.install_app')}</span>
+        <button
+          type="button"
+          onClick={install}
+          className="rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink"
+        >
+          {t('nav.install')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/** Announces each route change to screen readers. */
+const RouteAnnouncer: React.FC = () => {
+  const { pathname } = useLocation();
+  const { t } = useLanguage();
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    // Deferred so the live region updates after the new page has mounted.
+    const id = window.setTimeout(() => setMessage(`${t('common.loaded')} ${pathname}`), 120);
+    return () => window.clearTimeout(id);
+  }, [pathname, t]);
+
+  return (
+    <div aria-live="polite" aria-atomic="true" className="sr-only">
+      {message}
+    </div>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  const location = useLocation();
+
+  // The "more" sheet holds everything the bottom tab bar does not.
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // Navigating away always dismisses the sheet.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
+
+  const activeTab = location.pathname.startsWith('/dashboard')
+    ? 'dashboard'
+    : location.pathname.startsWith('/groups')
+      ? 'groups'
+      : location.pathname.startsWith('/payments')
+        ? 'payments'
+        : location.pathname.startsWith('/search')
+          ? 'search'
+          : location.pathname.startsWith('/profile')
+            ? 'profile'
+            : '';
+
   return (
     <>
       <ScrollToTop />
       <ThemeSync />
+      {/* Desktop island navbar (lg and up) */}
       <Navbar />
+      {/* Mobile top bar: replaces desktop island on small screens */}
+      <MobileTopBar onToggleMenu={() => setMoreOpen((v) => !v)} menuOpen={moreOpen} />
       <CalendarChooser />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
@@ -130,20 +237,22 @@ const AppRoutes: React.FC = () => {
         }}
       />
       <PwaUpdateBanner />
+      <InstallPromptBanner />
+      {/* Mobile app chrome: bottom tab bar + the "more" sheet */}
+      <MobileTabBar active={activeTab} />
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
       {/* Screen-reader route announcements */}
-      <div aria-live="polite" className="sr-only">{t('common.loaded')}</div>
+      <RouteAnnouncer />
     </>
   );
 };
 
-const App: React.FC = () => {
-  return (
-    <Provider store={store}>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </Provider>
-  );
-};
+const App: React.FC = () => (
+  <Provider store={store}>
+    <Router>
+      <AppRoutes />
+    </Router>
+  </Provider>
+);
 
 export default App;
