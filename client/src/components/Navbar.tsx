@@ -137,7 +137,7 @@ const Navbar: React.FC = () => {
       </AnimatePresence>
 
     <header
-      className="navbar-island"
+      className="navbar-island hidden lg:block"
       style={{ willChange: 'transform, opacity' }}
     >
       <div
