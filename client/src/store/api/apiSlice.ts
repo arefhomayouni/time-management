@@ -12,7 +12,11 @@ const rawBaseQuery = fetchBaseQuery({
   baseUrl: process.env.REACT_APP_API_URL || "http://localhost:3001/api",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
-    if (token) headers.set("authorization", `Bearer ${token}`);
+    // A per-request authorization header wins (password recovery uses a
+    // one-off reset token instead of the session token).
+    if (token && !headers.has("authorization")) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
     return headers;
   },
 });
@@ -323,6 +327,45 @@ export const apiSlice = createApi({
       }),
     }),
 
+    // -----forgot pass -----
+
+    /** Step 1: ask the API to mail a recovery code. */
+    sendForgetCode: builder.mutation<
+      { success?: boolean; message?: string; data?: { code: string } },
+      { email: string }
+    >({
+      query: ({ email }) => ({
+        url: "/users/send-forget",
+        method: "POST",
+        body: { email },
+      }),
+    }),
+
+    /** Step 2: exchange the recovery code for a short-lived reset token. */
+    checkForgetCode: builder.mutation<
+      { success?: boolean; message?: string; data?: { token: string } },
+      { email: string; code: string }
+    >({
+      query: ({ email, code }) => ({
+        url: "/users/forget-check",
+        method: "POST",
+        body: { email, code },
+      }),
+    }),
+
+    /** Step 3: set the new password with the reset token. */
+    resetPassword: builder.mutation<
+      { success?: boolean; message?: string; data?: { token: string } },
+      { email: string; newPassword: string; token: string }
+    >({
+      query: ({ email, newPassword, token }) => ({
+        url: "/users/forget-reset",
+        method: "POST",
+        body: { email, newPassword },
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    }),
+
     // ---- Payments ----
     getMyPayments: builder.query<
       {
@@ -405,4 +448,7 @@ export const {
   useGetGroupPaymentsQuery,
   useSearchWebMutation,
   useChangePasswordMutation,
+  useSendForgetCodeMutation,
+  useCheckForgetCodeMutation,
+  useResetPasswordMutation,
 } = apiSlice;

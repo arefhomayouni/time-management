@@ -24,7 +24,9 @@
     "no_notes": "No notes",
     "actions": "Actions",
     "empty": "Nothing here yet",
-    "close": "Close"
+    "close": "Close",
+    "dark": "Dark",
+    "light": "Light"
   },
   "auth": {
     "login_title": "Welcome back",
@@ -43,7 +45,24 @@
     "create_link": "Create one",
     "login_link": "Sign in",
     "login_success": "Signed in",
-    "register_success": "Account created"
+    "register_success": "Account created",
+    "forgot_link": "Forgot password?",
+    "forgot_title": "Reset your password",
+    "forgot_subtitle": "Enter your email and we will send you a recovery code so you can set a new password.",
+    "forgot_email_btn": "Send recovery code",
+    "forgot_code_title": "Enter the code",
+    "forgot_code_subtitle": "We sent a 6-digit recovery code to {email}.",
+    "forgot_code_to": "The code was sent to {email}.",
+    "forgot_code_label": "Recovery code",
+    "forgot_code_hint": "Your code:",
+    "forgot_code_btn": "Verify code",
+    "forgot_new_title": "Choose a new password",
+    "forgot_new_subtitle": "Use at least 8 characters, then sign in with it.",
+    "forgot_new_label": "New password",
+    "forgot_confirm_label": "Confirm new password",
+    "forgot_reset_btn": "Set new password",
+    "forgot_code_sent": "Recovery code sent",
+    "forgot_success": "Password updated. Sign in with your new password."
   },
   "home": {
     "eyebrow": "Time and payment management",
@@ -242,7 +261,12 @@
     "signed_out": "Signed out",
     "change_language": "Change language",
     "toggle_theme": "Toggle theme",
-    "back": "Back"
+    "back": "Back",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "more": "More",
+    "settings": "Settings",
+    "menu": "Menu"
   },
   "about": {
     "title": "About TimeLuxe",

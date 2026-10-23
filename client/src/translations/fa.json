@@ -24,7 +24,9 @@
     "no_notes": "بدون یادداشت",
     "actions": "عملیات",
     "empty": "هنوز چیزی اینجا نیست",
-    "close": "بستن"
+    "close": "بستن",
+    "dark": "تاریک",
+    "light": "روشن"
   },
   "auth": {
     "login_title": "خوش آمدید",
@@ -43,7 +45,24 @@
     "create_link": "بسازید",
     "login_link": "وارد شوید",
     "login_success": "ورود موفق",
-    "register_success": "حساب ساخته شد"
+    "register_success": "حساب ساخته شد",
+    "forgot_link": "رمز عبور را فراموش کرده‌اید؟",
+    "forgot_title": "بازنشانی رمز عبور",
+    "forgot_subtitle": "ایمیل خود را وارد کنید تا کد بازیابی برای ساخت رمز جدید برایتان ارسال شود.",
+    "forgot_email_btn": "ارسال کد بازیابی",
+    "forgot_code_title": "کد را وارد کنید",
+    "forgot_code_subtitle": "یک کد ۶ رقمی بازیابی به {email} ارسال شد.",
+    "forgot_code_to": "کد به {email} ارسال شد.",
+    "forgot_code_label": "کد بازیابی",
+    "forgot_code_hint": "کد شما:",
+    "forgot_code_btn": "بررسی کد",
+    "forgot_new_title": "رمز جدید انتخاب کنید",
+    "forgot_new_subtitle": "حداقل ۸ کاراکتر انتخاب کنید و سپس با آن وارد شوید.",
+    "forgot_new_label": "رمز جدید",
+    "forgot_confirm_label": "تکرار رمز جدید",
+    "forgot_reset_btn": "ثبت رمز جدید",
+    "forgot_code_sent": "کد بازیابی ارسال شد",
+    "forgot_success": "رمز عبور به‌روزرسانی شد. با رمز جدید وارد شوید."
   },
   "home": {
     "eyebrow": "مدیریت زمان و پرداخت",
@@ -242,7 +261,12 @@
     "signed_out": "خارج شدید",
     "change_language": "تغییر زبان",
     "toggle_theme": "تغییر پوسته",
-    "back": "بازگشت"
+    "back": "بازگشت",
+    "open_menu": "باز کردن منو",
+    "close_menu": "بستن منو",
+    "more": "بیشتر",
+    "settings": "تنظیمات",
+    "menu": "منو"
   },
   "about": {
     "title": "درباره تایم‌لوکس",
