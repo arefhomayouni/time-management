@@ -643,8 +643,15 @@
    =============================================================== */
 
 :root {
-  --mobile-topbar-h: 3.5rem; /* 56px */
-  --mobile-tabbar-h: 3.75rem; /* 60px */
+  --mobile-topbar-h: 3.25rem; /* 52px - slimmer, more room for data */
+  --mobile-tabbar-h: 3.5rem; /* 56px */
+
+  /* Density scale: a "pro tool" is compact. Controls and rows tighten on
+     mobile while keeping a 44px minimum hit area for thumbs. */
+  --control-h: 2.5rem; /* 40px */
+  --row-y: 0.625rem; /* 10px vertical padding on data rows */
+  --radius-control: 0.625rem; /* 10px - controls */
+  --radius-container: 0.875rem; /* 14px - cards/sheets */
 }
 
 /* No blue tap flash on touch screens */
@@ -721,6 +728,134 @@ body {
     right: auto !important;
     transform: translateX(-50%);
   }
+}
+
+/* ===============================================================
+   DENSITY & TOUCH - "pro tool" mobile feel
+   =============================================================== */
+
+/* Momentum scrolling for data lists without the rubber-band overshoot. */
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* A single data row: date / hours / amount, stacked for narrow screens.
+   `grid-flow-col` variants lay out horizontally when there is room. */
+.data-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--row-y) 1rem;
+  min-height: 3.25rem; /* 52px - comfortable target, still dense */
+  border-bottom: 1px solid rgb(var(--c-line) / 0.55);
+  transition: background-color 0.15s ease;
+}
+.data-row:last-child {
+  border-bottom: 0;
+}
+
+/* Full-width tappable row: highlight on press, not hover (touch first). */
+.row-tap {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.row-tap:active {
+  background-color: rgb(var(--c-inset) / 0.7);
+}
+
+/* Icon buttons inside rows: guarantee a 44px touch target even though the
+   visible glyph stays small. */
+.tap-target {
+  position: relative;
+}
+.tap-target::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 2.75rem; /* 44px */
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+}
+
+/* Floating action button: primary thumb-reach action (log time). */
+.fab {
+  position: fixed;
+  z-index: 55;
+  right: 1rem;
+  bottom: calc(var(--mobile-tabbar-h) + 1rem + env(safe-area-inset-bottom, 0px));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3.25rem; /* 52px */
+  padding-inline: 1.125rem;
+  border-radius: 9999px;
+  background: rgb(var(--c-accent));
+  color: rgb(var(--c-accent-ink));
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 28px -8px rgb(var(--c-glow) / 0.6),
+    0 2px 6px -2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  touch-action: manipulation;
+}
+.fab:active {
+  transform: scale(0.96);
+}
+.fab:focus-visible {
+  outline: 2px solid rgb(var(--c-accent));
+  outline-offset: 3px;
+}
+
+/* In RTL the FAB flips to the leading side automatically. */
+[dir="rtl"] .fab {
+  right: auto;
+  left: 1rem;
+}
+
+/* Hide the FAB on desktop where the inline form is the primary path. */
+@media (min-width: 1024px) {
+  .fab {
+    display: none;
+  }
+}
+
+/* Compact stat strip: horizontal scroll of small metrics on mobile. */
+.stat-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(9.5rem, 1fr);
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.25rem;
+}
+.stat-strip > * {
+  scroll-snap-align: start;
+}
+@media (min-width: 1024px) {
+  .stat-strip {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: visible;
+  }
+}
+
+/* Sticky section heading that stays put while its list scrolls - keeps the
+   user oriented in a long log without eating vertical space. */
+.sticky-head {
+  position: sticky;
+  top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top, 0px));
+  z-index: 5;
+  background: rgb(var(--c-bg));
+  backdrop-filter: blur(8px);
+}
+
+/* Quick-log sheet: cap height so the form sits in the lower thumb zone and
+   the keyboard doesn't push it off-screen on iOS/Android. */
+.log-sheet {
+  max-height: 80dvh;
 }
 
 /* ===============================================================

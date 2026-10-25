@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// Only the two families the design system actually uses (see tailwind.config.js
+// fontFamily and the --font-* variables): Outfit for UI text, JetBrains Mono
+// for figures. Extra families here ship hundreds of KB nobody renders.
 import '@fontsource-variable/outfit';
 import '@fontsource-variable/jetbrains-mono';
-import '@fontsource-variable/space-grotesk';
-import '@fontsource-variable/geist';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
