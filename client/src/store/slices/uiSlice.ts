@@ -2,23 +2,54 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { storage } from '../storage';
 
 export type Language = 'en' | 'fa';
+/**
+ * 'system' follows the OS preference (prefers-color-scheme) and is the
+ * default so an installed PWA matches the phone's own light/dark mode.
+ * The other two are explicit user overrides that persist forever.
+ */
 export type Theme = 'light' | 'dark';
+export type ThemePreference = Theme | 'system';
+/** Resolved theme written to <html class="dark"> - never 'system'. */
+export type ResolvedTheme = Theme;
+
+/** Reads the OS color scheme. Safe on old browsers: defaults to 'light'. */
+export const systemPrefersDark = (): boolean =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+    : false;
+
+/** Turns a stored preference + OS state into the theme to paint. */
+export const resolveTheme = (
+  pref: ThemePreference,
+  systemDark: boolean
+): ResolvedTheme => (pref === 'system' ? (systemDark ? 'dark' : 'light') : pref);
 export type CurrencyMode = 'usd' | 'dual' | 'irr';
 /** Which calendar the UI shows/accepts. The DB always stores Gregorian ISO. */
 export type CalendarMode = 'jalali' | 'gregorian';
 
 interface UiState {
   language: Language;
-  theme: Theme;
+  /** What the user chose: follow the OS, or force light/dark. */
+  theme: ThemePreference;
+  /**
+   * The theme actually painted right now. Only meaningful for 'system'
+   * (mirrors the OS); for an explicit choice it equals `theme`. Kept in
+   * the store so one selector drives both <html> and the toggle icons.
+   */
+  resolvedTheme: ResolvedTheme;
   currency: CurrencyMode;
   calendar: CalendarMode;
   /** First-visit calendar chooser has been answered (or skipped). */
   calendarAsked: boolean;
 }
 
+const initialThemePref = storage.get<ThemePreference>('theme', 'system');
+
 const initialState: UiState = {
   language: storage.get<Language>('lang', 'en'),
-  theme: storage.get<Theme>('theme', 'light'),
+  theme: initialThemePref,
+  resolvedTheme: resolveTheme(initialThemePref, systemPrefersDark()),
   currency: storage.get<CurrencyMode>('currency', 'dual'),
   // Default follows the language, but the user can override it anytime.
   calendar: storage.get<CalendarMode>(
@@ -36,13 +67,34 @@ const uiSlice = createSlice({
       state.language = action.payload;
       storage.set('lang', action.payload);
     },
-    setTheme: (state, action: PayloadAction<Theme>) => {
+    setTheme: (state, action: PayloadAction<ThemePreference>) => {
       state.theme = action.payload;
       storage.set('theme', action.payload);
+      // Resolve immediately for explicit picks; 'system' is resolved by
+      // the ThemeSync effect which knows the live OS state.
+      if (action.payload !== 'system') state.resolvedTheme = action.payload;
     },
-    toggleTheme: (state) => {
-      state.theme = state.theme === 'light' ? 'dark' : 'light';
-      storage.set('theme', state.theme);
+    /**
+     * One-tap cycle used by the mobile "More" sheet and the desktop navbar:
+     * system -> light -> dark -> system. Keeps a single control honest about
+     * all three states instead of silently dropping the OS default.
+     */
+    cycleTheme: (state) => {
+      const order: ThemePreference[] = ['system', 'light', 'dark'];
+      const next = order[(order.indexOf(state.theme) + 1) % order.length];
+      state.theme = next;
+      storage.set('theme', next);
+      if (next !== 'system') state.resolvedTheme = next;
+    },
+    /**
+     * Called by ThemeSync whenever the OS reports a new color scheme. No-op
+     * unless the user is actually following the system, so an explicit
+     * choice is never overwritten by the phone flipping to dark at sunset.
+     */
+    syncSystemTheme: (state, action: PayloadAction<boolean>) => {
+      if (state.theme === 'system') {
+        state.resolvedTheme = action.payload ? 'dark' : 'light';
+      }
     },
     setCurrency: (state, action: PayloadAction<CurrencyMode>) => {
       state.currency = action.payload;
@@ -86,7 +138,8 @@ export const {
   setLanguage,
   openCalendarAsk,
   setTheme,
-  toggleTheme,
+  cycleTheme,
+  syncSystemTheme,
   setCurrency,
   cycleCurrency,
   setCalendar,

@@ -40,7 +40,7 @@ const HowToPage: React.FC = () => {
   const toggleFaq = (i: number) => setOpenFaq(openFaq === i ? null : i);
 
   return (
-    <main className="relative pt-24">
+    <main className="relative pt-24 page-top page-bottom">
       <div className="aurora" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
       <div className="app-shell">

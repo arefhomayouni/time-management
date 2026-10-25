@@ -22,8 +22,19 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 /**
- * Wraps fetchBaseQuery: on any 401 the session is dead, so we sign out and
- * drop every cached query instead of letting components spin forever.
+ * Endpoints authenticated by a one-off token instead of the session. A 401
+ * from these means "this reset link is spent", not "your session is over",
+ * so they must never sign the user out.
+ */
+const ONE_OFF_TOKEN_URLS = ['/users/forget-reset'];
+
+const urlOf = (args: string | FetchArgs): string =>
+  typeof args === 'string' ? args : args?.url || '';
+
+/**
+ * Wraps fetchBaseQuery: when the session itself is rejected (401) the session
+ * is dead, so we sign out and drop every cached query instead of letting
+ * components spin forever.
  */
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
@@ -32,8 +43,12 @@ const baseQueryWithReauth: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error && result.error.status === 401) {
-    api.dispatch(logout());
-    api.dispatch(apiSlice.util.resetApiState());
+    const hasSession = Boolean((api.getState() as RootState).auth.token);
+    const usedOneOffToken = ONE_OFF_TOKEN_URLS.includes(urlOf(args));
+    if (hasSession && !usedOneOffToken) {
+      api.dispatch(logout());
+      api.dispatch(apiSlice.util.resetApiState());
+    }
   }
   return result;
 };

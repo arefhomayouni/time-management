@@ -39,7 +39,7 @@ const PaymentsPage: React.FC = () => {
   const total = data?.data?.total ?? 0;
 
   return (
-    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
       <div className="aurora" aria-hidden="true" />
       <motion.div
         initial={reduce ? false : { opacity: 0, y: 20 }}
@@ -85,32 +85,59 @@ const PaymentsPage: React.FC = () => {
             <p className="mt-3 text-sm text-muted">{t('payments.no_payments')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-line">
-                  <th className="table-head">{t('payments.table_date')}</th>
-                  <th className="table-head">{t('payments.table_method')}</th>
-                  <th className="table-head">{t('payments.table_notes')}</th>
-                  <th className="table-head text-end">{t('payments.table_amount')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line/60">
-                {payments.map((p: any) => (
-                  <tr key={p._id} className="transition-colors hover:bg-inset/60">
-                    <td className="table-cell num text-muted">{formatDate(p.date)}</td>
-                    <td className="table-cell">
-                      <span className="badge bg-inset uppercase text-muted">{p.paymentMethod}</span>
-                    </td>
-                    <td className="table-cell text-muted">{p.notes || t('common.no_notes')}</td>
-                    <td className="table-cell num text-end font-semibold text-ink">
-                      {storedMoney(p.amount, p.currency === 'irr' ? 'irr' : 'usd')}
-                    </td>
+          <>
+            {/* Mobile: dense payment rows */}
+            <ul className="lg:hidden">
+              {payments.map((p: any) => (
+                <li key={p._id} className="data-row">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="num text-[13px] font-medium text-ink">
+                        {formatDate(p.date)}
+                      </span>
+                      <span className="badge !px-1.5 !py-0 !text-[10px] bg-inset uppercase text-muted">
+                        {p.paymentMethod}
+                      </span>
+                    </div>
+                    {p.notes && (
+                      <p className="mt-0.5 truncate text-[11px] text-muted">{p.notes}</p>
+                    )}
+                  </div>
+                  <span className="num shrink-0 text-[15px] font-semibold text-ink">
+                    {storedMoney(p.amount, p.currency === 'irr' ? 'irr' : 'usd')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: full table */}
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[560px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className="table-head">{t('payments.table_date')}</th>
+                    <th className="table-head">{t('payments.table_method')}</th>
+                    <th className="table-head">{t('payments.table_notes')}</th>
+                    <th className="table-head text-end">{t('payments.table_amount')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-line/60">
+                  {payments.map((p: any) => (
+                    <tr key={p._id} className="transition-colors hover:bg-inset/60">
+                      <td className="table-cell num text-muted">{formatDate(p.date)}</td>
+                      <td className="table-cell">
+                        <span className="badge bg-inset uppercase text-muted">{p.paymentMethod}</span>
+                      </td>
+                      <td className="table-cell text-muted">{p.notes || t('common.no_notes')}</td>
+                      <td className="table-cell num text-end font-semibold text-ink">
+                        {storedMoney(p.amount, p.currency === 'irr' ? 'irr' : 'usd')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
       </Reveal>

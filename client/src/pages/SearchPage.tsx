@@ -36,7 +36,7 @@ const SearchPage: React.FC = () => {
   };
 
   return (
-    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
       <div className="aurora" aria-hidden="true" />
 
       {/* Header + search form */}

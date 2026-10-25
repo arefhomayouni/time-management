@@ -16,7 +16,9 @@ import type { RateCurrency } from '../store/slices/authSlice';
 const RegisterSchema = Yup.object().shape({
   username: Yup.string().min(3, 'At least 3 characters').required('Username is required'),
   email: Yup.string().email('Enter a valid email').required('Email is required'),
-  password: Yup.string().min(6, 'At least 6 characters').required('Password is required'),
+  // 8 characters is what the API enforces (auth/validation) - keeping the
+  // client stricter here means a form that submits never comes back 400.
+  password: Yup.string().min(8, 'At least 8 characters').required('Password is required'),
   personalRate: Yup.number()
     .typeError('Enter a number')
     .min(0, 'Cannot be negative')
@@ -74,7 +76,7 @@ const RegisterPage: React.FC = () => {
     moneyByRateCurrency(rate, currency);
 
   return (
-    <main className="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center px-4 pb-16 pt-10">
+    <main className="relative flex min-h-[100dvh] items-center justify-center px-4 pb-16 page-top">
       <div className="aurora" aria-hidden="true" />
       <div className="grid w-full max-w-5xl gap-10 md:grid-cols-2 md:items-center md:gap-16">
         <motion.div
