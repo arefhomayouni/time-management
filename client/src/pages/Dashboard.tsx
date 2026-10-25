@@ -11,6 +11,7 @@ import {
   useDeleteTimeLogMutation,
 } from '../store/api/apiSlice';
 import LogTimeForm from '../components/dashboard/LogTimeForm';
+import LogTimeFab from '../components/mobile/LogTimeFab';
 import {
   useStoredMoney,
   useDisplayMode,
@@ -164,28 +165,30 @@ const Dashboard: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Stat row: separated by hairlines, no card boxes */}
+      {/* Stat row: a swipeable strip on mobile, a hairline-divided row on desktop */}
       <motion.div
         variants={staggerContainer(0.07)}
         initial={reduce ? false : 'hidden'}
         animate="show"
-        className="relative z-10 mt-8 grid grid-cols-2 divide-line border-y border-line lg:grid-cols-4 lg:divide-x"
+        className="stat-strip relative z-10 mt-6 border-y border-line py-3 lg:mt-8 lg:grid lg:grid-cols-4 lg:divide-x lg:divide-line lg:py-0"
       >
-        {stats.map(({ label, value, Icon }, i) => (
+        {stats.map(({ label, value, Icon }) => (
           <motion.div
             key={label}
             variants={staggerItem}
-            className={`stat-tile flex items-center gap-3.5 ${i < 2 ? 'border-b border-line lg:border-b-0' : ''} ${i % 2 === 1 ? 'border-s border-line ps-4 lg:border-s-0 lg:ps-6' : ''}`}
+            className="stat-tile flex items-center gap-3 rounded-xl bg-inset/40 px-3 py-2.5 lg:bg-transparent lg:rounded-none lg:px-6 lg:py-5"
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent shadow-[0_2px_8px_-2px_rgb(var(--c-glow)/0.2)]">
-              <Icon size={20} weight="light" />
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent">
+              <Icon size={18} weight="light" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[13px] text-muted">{label}</p>
+              <p className="truncate text-[12px] leading-tight text-muted">{label}</p>
               {summaryLoading ? (
-                <div className="skeleton mt-1.5 h-6 w-24" />
+                <div className="skeleton mt-1 h-5 w-20" />
               ) : (
-                <p className="num-display mt-0.5 text-xl font-semibold tracking-tight text-ink">{value}</p>
+                <p className="num-display mt-0.5 truncate text-lg font-semibold tracking-tight text-ink">
+                  {value}
+                </p>
               )}
             </div>
           </motion.div>
@@ -193,8 +196,8 @@ const Dashboard: React.FC = () => {
       </motion.div>
 
       <div className="relative z-10 mt-8 grid gap-6 lg:grid-cols-[340px_1fr] lg:gap-8">
-        {/* Log form */}
-        <Reveal className="h-fit">
+        {/* Log form: desktop only. On mobile the FAB + bottom sheet is the path. */}
+        <Reveal className="h-fit hidden lg:block">
           <section className="card-deep h-fit p-6 elevated">
             <h2 className="flex items-center gap-2 font-semibold">
               <PlusCircle size={19} weight="light" className="text-accent" />
@@ -229,59 +232,107 @@ const Dashboard: React.FC = () => {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-line">
-                    <th className="table-head">{t('dashboard.table_date')}</th>
-                    <th className="table-head">{t('dashboard.table_hours')}</th>
-                    <th className="table-head">{t('dashboard.table_amount')}</th>
-                    <th className="table-head">{t('dashboard.table_group')}</th>
-                    <th className="table-head">{t('dashboard.table_status')}</th>
-                    <th className="table-head text-end">{t('common.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line/60">
-                  {logs.map((log: any) => (
-                    <tr key={log._id} className="transition-colors hover:bg-inset/60">
-                      <td className="table-cell num text-muted">
-                        {formatDate(log.date)}
-                      </td>
-                      <td className="table-cell num">{fmtHours(log.hours)}</td>
-                      <td className="table-cell num font-semibold text-ink">
-                        {storedMoney(log.amount, log.currency === 'irr' ? 'irr' : 'usd')}
-                      </td>
-                      <td className="table-cell text-muted">
-                        {log.group ? t('groups.title') : t('dashboard.personal')}
-                      </td>
-                      <td className="table-cell">
+            <>
+              {/* Mobile: dense entry list, one row per log */}
+              <ul className="lg:hidden">
+                {logs.map((log: any) => (
+                  <li key={log._id} className="data-row">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="num text-[13px] font-medium text-ink">
+                          {formatDate(log.date)}
+                        </span>
                         <span
-                          className={`badge ${log.status === 'paid' ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn'}`}
+                          className={`badge !px-1.5 !py-0 !text-[10px] ${
+                            log.status === 'paid'
+                              ? 'bg-success/15 text-success'
+                              : 'bg-warn/15 text-warn'
+                          }`}
                         >
                           {log.status === 'paid'
                             ? t('dashboard.status_paid')
                             : t('dashboard.status_pending')}
                         </span>
-                      </td>
-                      <td className="table-cell text-end">
-                        <button
-                          onClick={() => handleDelete(log._id)}
-                          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-accent/10 hover:text-accent"
-                          aria-label={t('common.delete')}
-                          title={t('common.delete')}
-                        >
-                          <Trash size={16} />
-                        </button>
-                      </td>
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-muted">
+                        {fmtHours(log.hours)} {t('common.hours_unit')} ·{' '}
+                        {log.group ? t('groups.title') : t('dashboard.personal')}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <span className="num text-[15px] font-semibold text-ink">
+                        {storedMoney(log.amount, log.currency === 'irr' ? 'irr' : 'usd')}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(log._id)}
+                        className="tap-target grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                        aria-label={t('common.delete')}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop: full table */}
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="w-full min-w-[560px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-line">
+                      <th className="table-head">{t('dashboard.table_date')}</th>
+                      <th className="table-head">{t('dashboard.table_hours')}</th>
+                      <th className="table-head">{t('dashboard.table_amount')}</th>
+                      <th className="table-head">{t('dashboard.table_group')}</th>
+                      <th className="table-head">{t('dashboard.table_status')}</th>
+                      <th className="table-head text-end">{t('common.actions')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-line/60">
+                    {logs.map((log: any) => (
+                      <tr key={log._id} className="transition-colors hover:bg-inset/60">
+                        <td className="table-cell num text-muted">
+                          {formatDate(log.date)}
+                        </td>
+                        <td className="table-cell num">{fmtHours(log.hours)}</td>
+                        <td className="table-cell num font-semibold text-ink">
+                          {storedMoney(log.amount, log.currency === 'irr' ? 'irr' : 'usd')}
+                        </td>
+                        <td className="table-cell text-muted">
+                          {log.group ? t('groups.title') : t('dashboard.personal')}
+                        </td>
+                        <td className="table-cell">
+                          <span
+                            className={`badge ${log.status === 'paid' ? 'bg-success/15 text-success' : 'bg-warn/15 text-warn'}`}
+                          >
+                            {log.status === 'paid'
+                              ? t('dashboard.status_paid')
+                              : t('dashboard.status_pending')}
+                          </span>
+                        </td>
+                        <td className="table-cell text-end">
+                          <button
+                            onClick={() => handleDelete(log._id)}
+                            className="rounded-lg p-1.5 text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                            aria-label={t('common.delete')}
+                            title={t('common.delete')}
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
         </Reveal>
       </div>
+
+      {/* Mobile quick-log FAB (hidden on desktop by CSS) */}
+      <LogTimeFab />
     </main>
   );
 };

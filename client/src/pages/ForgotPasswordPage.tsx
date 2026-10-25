@@ -124,7 +124,7 @@ const ForgotPasswordPage: React.FC = () => {
         : t("auth.forgot_new_subtitle");
 
   return (
-    <main className="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center px-4 pb-16 pt-10">
+    <main className="relative flex min-h-[100dvh] items-center justify-center px-4 pb-16 page-top">
       <div className="aurora" aria-hidden="true" />
       <div className="grid w-full max-w-5xl gap-10 md:grid-cols-2 md:items-center md:gap-16">
         {/* Left: value copy */}

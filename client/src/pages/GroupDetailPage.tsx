@@ -220,7 +220,7 @@ const GroupDetailPage: React.FC = () => {
 
   if (groupLoading) {
     return (
-      <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
         <div className="aurora" aria-hidden="true" />
         <div className="relative z-10 space-y-4">
           <div className="skeleton h-10 w-48" />
@@ -232,7 +232,7 @@ const GroupDetailPage: React.FC = () => {
 
   if (!group) {
     return (
-      <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+      <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
         <div className="aurora" aria-hidden="true" />
         <div className="relative z-10 text-center">
           <p className="text-sm text-muted">{t('group.not_found')}</p>
@@ -249,7 +249,7 @@ const GroupDetailPage: React.FC = () => {
   const budgetPct = budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
 
   return (
-    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6">
+    <main className="relative mx-auto max-w-shell px-4 pb-20 pt-24 sm:px-6 page-top page-bottom">
       <div className="aurora" aria-hidden="true" />
 
       <motion.div
@@ -627,7 +627,43 @@ const GroupDetailPage: React.FC = () => {
                         {t('group.no_report')}
                       </p>
                     ) : (
-                      <div className="mt-5 overflow-x-auto">
+                      <>
+                      {/* Mobile: per-member summary rows */}
+                      <ul className="mt-5 lg:hidden">
+                        {report.reports.map((row) => (
+                          <li key={row.userId} className="data-row">
+                            <Avatar name={row.username} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-[13px] font-medium text-ink">
+                                  {row.username}
+                                </p>
+                                <span
+                                  className={`badge !px-1.5 !py-0 !text-[10px] ${
+                                    row.status === 'Exact'
+                                      ? 'bg-success/10 text-success'
+                                      : row.status === 'Overpaid'
+                                        ? 'bg-accent/10 text-accent'
+                                        : 'bg-inset text-muted'
+                                  }`}
+                                >
+                                  {statusLabel(row.status)}
+                                </span>
+                              </div>
+                              <p className="num mt-0.5 truncate text-[11px] text-muted">
+                                {fmtHours(row.totalHours)} {t('common.hours_unit')} ·{' '}
+                                {t('groups.report_table_remaining')} {money(row.remainingAmount)}
+                              </p>
+                            </div>
+                            <span className="num shrink-0 text-[14px] font-semibold text-ink">
+                              {money(row.totalAmount)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* Desktop: full report table */}
+                      <div className="mt-5 hidden overflow-x-auto lg:block">
                         <table className="w-full min-w-[560px] border-collapse">
                           <thead>
                             <tr className="border-b border-line">
@@ -693,6 +729,7 @@ const GroupDetailPage: React.FC = () => {
                           </tbody>
                         </table>
                       </div>
+                      </>
                     )}
                   </>
                 ) : (

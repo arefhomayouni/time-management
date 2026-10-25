@@ -18,6 +18,68 @@ import {
 } from '../store/api/apiSlice';
 import { moneyByRateCurrency } from '../utils/format';
 import { TiltCard, staggerContainer, staggerItem, EASE_OUT } from '../components/motion/kinetics';
+import { useIsMobile } from '../hooks/useIsMobile';
+
+/**
+ * A single group summary card. Fully tappable on mobile (the whole card is
+ * the link target) so a worker can jump into a group without hunting for the
+ * small "Manage" button.
+ */
+const GroupCard: React.FC<{ group: any }> = ({ group: g }) => {
+  const { t } = useLanguage();
+  const currency = (g.hourlyRateCurrency || 'usd') as 'usd' | 'irr';
+  const memberCount = Array.isArray(g.members) ? g.members.length : 0;
+
+  return (
+    <section className="card-deep flex h-full flex-col p-4 sm:p-5 row-tap">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate font-semibold text-ink">{g.name}</h2>
+          <span
+            className={`badge mt-1.5 ${
+              g.isManager ? 'bg-accent/10 text-accent' : 'bg-inset text-muted'
+            }`}
+          >
+            {g.isManager ? t('groups.role_manager') : t('groups.role_member')}
+          </span>
+        </div>
+        <div className="num shrink-0 text-end text-sm text-ink">
+          {moneyByRateCurrency(g.hourlyRate, currency)}
+          <span className="text-muted">/{t('common.hr')}</span>
+        </div>
+      </div>
+
+      <dl className="mt-3 space-y-1.5 text-xs">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted">{t('groups.budget_short')}</dt>
+          <dd className="num text-ink">
+            {g.budget ? moneyByRateCurrency(g.budget, currency) : t('groups.no_budget')}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted">{t('groups.members_title')}</dt>
+          <dd className="num text-ink">{memberCount}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted">{t('groups.rate_currency')}</dt>
+          <dd className="text-ink">{currency === 'irr' ? 'IRR' : 'USD'}</dd>
+        </div>
+      </dl>
+
+      {/* Full-card tap target on mobile; explicit button on desktop */}
+      <div className="mt-auto flex items-center gap-2.5 pt-4">
+        <Link
+          to={`/groups/${g._id}`}
+          className="btn-ghost inline-flex items-center gap-1.5 text-sm"
+          aria-label={`${g.isManager ? t('groups.manage') : t('groups.view_details')}: ${g.name}`}
+        >
+          {g.isManager ? t('groups.manage') : t('groups.view_details')}
+          <ArrowRight size={14} className="rtl:rotate-180" />
+        </Link>
+      </div>
+    </section>
+  );
+};
 
 /**
  * Groups overview: every group you belong to, plus invitations waiting for
@@ -28,6 +90,7 @@ const GroupsPage: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const reduce = useReducedMotion();
+  const isMobile = useIsMobile();
   const [answering, setAnswering] = useState<string | null>(null);
 
   const { data: groupsData, isLoading: groupsLoading } = useGetMyGroupsQuery();
@@ -165,57 +228,16 @@ const GroupsPage: React.FC = () => {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((g: any) => {
-              const currency = (g.hourlyRateCurrency || 'usd') as 'usd' | 'irr';
-              const memberCount = Array.isArray(g.members) ? g.members.length : 0;
               return (
                 <motion.section key={g._id} variants={staggerItem} className="h-full">
-                  <TiltCard max={5} className="h-full">
-                    <section className="card-deep flex h-full flex-col p-4 sm:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h2 className="truncate font-semibold text-ink">{g.name}</h2>
-                          <span
-                            className={`badge mt-1.5 ${g.isManager ? 'bg-accent/10 text-accent' : 'bg-inset text-muted'}`}
-                          >
-                            {g.isManager ? t('groups.role_manager') : t('groups.role_member')}
-                          </span>
-                        </div>
-                        <div className="num shrink-0 text-end text-sm text-ink">
-                          {moneyByRateCurrency(g.hourlyRate, currency)}
-                          <span className="text-muted">/{t('common.hr')}</span>
-                        </div>
-                      </div>
-
-                      <dl className="mt-3 space-y-1.5 text-xs">
-                        <div className="flex items-center justify-between gap-3">
-                          <dt className="text-muted">{t('groups.budget_short')}</dt>
-                          <dd className="num text-ink">
-                            {g.budget
-                              ? moneyByRateCurrency(g.budget, currency)
-                              : t('groups.no_budget')}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <dt className="text-muted">{t('groups.members_title')}</dt>
-                          <dd className="num text-ink">{memberCount}</dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <dt className="text-muted">{t('groups.rate_currency')}</dt>
-                          <dd className="text-ink">{currency === 'irr' ? 'IRR' : 'USD'}</dd>
-                        </div>
-                      </dl>
-
-                      <div className="mt-auto flex items-center gap-2.5 pt-4">
-                        <Link
-                          to={`/groups/${g._id}`}
-                          className="btn-ghost inline-flex items-center gap-1.5 text-sm"
-                        >
-                          {g.isManager ? t('groups.manage') : t('groups.view_details')}
-                          <ArrowRight size={14} className="rtl:rotate-180" />
-                        </Link>
-                      </div>
-                    </section>
-                  </TiltCard>
+                  {/* Tilt feels bad on touch; only wrap desktop cards. */}
+                  {isMobile ? (
+                    <GroupCard group={g} />
+                  ) : (
+                    <TiltCard max={5} className="h-full">
+                      <GroupCard group={g} />
+                    </TiltCard>
+                  )}
                 </motion.section>
               );
             })}
