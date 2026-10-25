@@ -1,26 +1,43 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import { catchError } from 'vanta-api';
-import userRoutes from './routes/userRoutes.js';
-import timeRoutes from './routes/timeRoutes.js';
-import groupRoutes from './routes/groupRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js';
-import searchRoutes from './routes/searchRoutes.js';
-import swaggerUi from 'swagger-ui-express';
-import { specs } from './config/swagger.js';
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import swaggerUi from "swagger-ui-express";
 
-dotenv.config();
+import { mongoUri, corsOrigins, isProduction } from "./config/env.js";
+import userRoutes from "./routes/userRoutes.js";
+import timeRoutes from "./routes/timeRoutes.js";
+import groupRoutes from "./routes/groupRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import searchRoutes from "./routes/searchRoutes.js";
+import { specs } from "./config/swagger.js";
+import { notFound, errorHandler } from "./middlewares/error.js";
 
 const app = express();
 
-// Enable CORS for frontend access
-app.use(cors());
+// Do not advertise the stack.
+app.disable("x-powered-by");
 
-app.use(express.json());
+/**
+ * CORS. With CORS_ORIGINS set, only those origins are allowed (requests with
+ * no Origin header - curl, server-to-server - still pass). Without it the
+ * default is permissive, which is what local development needs.
+ */
+app.use(
+  cors(
+    corsOrigins.length
+      ? {
+          origin(origin, callback) {
+            if (!origin || corsOrigins.includes(origin)) return callback(null, true);
+            return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+          },
+        }
+      : {}
+  )
+);
 
-// Swagger Documentation with Great UI
+app.use(express.json({ limit: "100kb" }));
+
+// Swagger Documentation
 const swaggerOptions = {
   customCss: `
     body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -35,37 +52,44 @@ const swaggerOptions = {
   `,
 };
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
-// Database Connection
+// Database connection. A failure is logged loudly but does not kill the
+// process: /health reports `database: "disconnected"` so a platform probe can
+// see the problem instead of a silent crash loop.
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    bufferTimeoutMS: 120000, // 120 seconds
-    serverSelectionTimeoutMS: 60000, // 60 seconds
-    connectTimeoutMS: 60000, // 60 seconds
+  .connect(mongoUri, {
+    bufferTimeoutMS: 120000,
+    serverSelectionTimeoutMS: 60000,
+    connectTimeoutMS: 60000,
   })
   .then(() => console.log("MongoDB connected..."))
-  .catch((err) =>
-    console.error("MongoDB connection error:", err)
-  );
-// Routes
-app.use('/api/users', userRoutes);
-app.use('/api/time', timeRoutes);
-app.use('/api/groups', groupRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/search', searchRoutes);
-app.get('/health', (req, res) => {
+  .catch((err) => console.error("MongoDB connection error:", err.message));
 
-  res.status(200).json({message: 
-    'Time Management API is running...',
-  lastUpdate:"15:35"});
-});
-// Basic Route for testing
-app.get('/', (req, res) => {
-  res.send('Time Management API is running...');
+const DB_STATES = ["disconnected", "connected", "connecting", "disconnecting"];
+
+app.get("/health", (req, res) => {
+  const state = DB_STATES[mongoose.connection.readyState] || "unknown";
+  res.status(200).json({
+    status: "ok",
+    database: state,
+    uptime: Math.round(process.uptime()),
+    environment: isProduction ? "production" : "development",
+  });
 });
 
-// Global Error Handler from Vanta API
-app.use(catchError);
+app.get("/", (req, res) => {
+  res.json({ success: true, message: "Time Management API is running..." });
+});
+
+app.use("/api/users", userRoutes);
+app.use("/api/time", timeRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/search", searchRoutes);
+
+// Anything unmatched is a JSON 404, and every thrown error becomes JSON too.
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;

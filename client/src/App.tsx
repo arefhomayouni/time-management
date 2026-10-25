@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { Toaster } from 'react-hot-toast';
-import { useAppSelector } from './store/hooks';
+import { useAppSelector, useAppDispatch } from './store/hooks';
+import { syncSystemTheme } from './store/slices/uiSlice';
 import { useLanguage } from './hooks/useLanguage';
 import { onPwaUpdate } from './pwa';
 import Navbar from './components/Navbar';
@@ -36,12 +37,63 @@ const ScrollToTop: React.FC = () => {
   return null;
 };
 
-/** Keeps <html class="dark"> and lang/dir in sync with the ui slice */
+/**
+ * Keeps <html class="dark">, the PWA theme-color meta and the OS color
+ * scheme in sync with the ui slice.
+ *
+ * When the user follows the system we listen to `prefers-color-scheme` so
+ * an installed PWA flips with the phone (e.g. at sunset) with no reload.
+ * An explicit choice overrides the listener until it is changed again.
+ */
 const ThemeSync: React.FC = () => {
-  const theme = useAppSelector((s) => s.ui.theme);
+  const preference = useAppSelector((s) => s.ui.theme);
+  const resolved = useAppSelector((s) => s.ui.resolvedTheme);
+  const dispatch = useAppDispatch();
+
+  // Track the OS scheme so 'system' stays live. matchMedia is the only
+  // API that reports it; guard for very old browsers.
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) =>
+      dispatch(syncSystemTheme(e.matches));
+    // Seed once on mount, then follow changes.
+    dispatch(syncSystemTheme(mq.matches));
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [dispatch]);
+
+  // Paint the resolved theme on <html> and the browser/PWA chrome.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', resolved === 'dark');
+    // Tells the UA how to render form controls / scrollbars for this theme.
+    root.style.colorScheme = resolved;
+
+    // Match the installed-app status bar / title bar to the page background
+    // so the standalone window's chrome never clashes with the theme.
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    // Resolve --c-bg (an rgb triplet) through a probe so we hand the
+    // browser a concrete color rather than a CSS variable it can't parse.
+    const probe = document.createElement('span');
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.backgroundColor = 'rgb(var(--c-bg))';
+    document.body.appendChild(probe);
+    meta.content = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+  }, [resolved]);
+
+  // Expose the active preference for debugging / future UI.
+  useEffect(() => {
+    document.documentElement.dataset.themePreference = preference;
+  }, [preference]);
+
   return null;
 };
 
