@@ -20,8 +20,9 @@ type MobileTabBarProps = {
 /**
  * Fixed bottom tab bar for the installed/PWA experience.
  * - 5 tab destinations, all of which require an account
- * - Active indicator with scaled-up icon + accent colour
- * - Clicks navigate via react-router-dom Link
+ * - Active indicator: accent colour + a pill behind the icon so the current
+ *   tab is obvious at a glance (and under sunlight on a job site)
+ * - 44px+ touch targets via the icon+label column height
  * - Safe-area bottom inset so it never overlaps content
  *
  * Signed-out visitors never see it: every tab would bounce them to /login,
@@ -44,7 +45,7 @@ const MobileTabBar: React.FC<MobileTabBarProps> = ({ active, onSelect }) => {
   return (
     <nav
       aria-label={t('nav.menu')}
-      className="app-tabbar fixed bottom-0 left-0 right-0 z-50 flex items-stretch justify-around border-t border-line/80 bg-surface/95 px-1 pt-1.5 backdrop-blur-xl lg:hidden"
+      className="app-tabbar fixed bottom-0 left-0 right-0 z-50 flex items-stretch justify-around border-t border-line/80 bg-surface/95 px-1 pt-1 backdrop-blur-xl lg:hidden"
     >
       {tabs.map((tab) => {
         const isActive = active === tab.key;
@@ -54,18 +55,23 @@ const MobileTabBar: React.FC<MobileTabBarProps> = ({ active, onSelect }) => {
             to={tab.to}
             onClick={() => onSelect?.(tab.key)}
             aria-current={isActive ? 'page' : undefined}
-            className={`flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1 transition-colors ${
-              isActive
-                ? 'text-accent'
-                : 'text-muted hover:text-ink'
+            className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors ${
+              isActive ? 'text-accent' : 'text-muted hover:text-ink'
             }`}
           >
-            <tab.Icon
-              size={22}
-              weight={isActive ? 'fill' : 'regular'}
-              className={isActive ? 'scale-110 transition-transform' : undefined}
-            />
-            <span className="max-w-full truncate text-[10px] font-medium uppercase tracking-wide">
+            {/* Active pill behind the icon for a stronger current-tab signal */}
+            <span
+              className={`grid h-7 w-12 place-items-center rounded-full transition-colors ${
+                isActive ? 'bg-accent/12' : ''
+              }`}
+            >
+              <tab.Icon size={20} weight={isActive ? 'fill' : 'regular'} />
+            </span>
+            <span
+              className={`max-w-full truncate px-0.5 text-[10px] leading-tight ${
+                isActive ? 'font-semibold' : 'font-medium'
+              }`}
+            >
               {tab.label}
             </span>
           </Link>

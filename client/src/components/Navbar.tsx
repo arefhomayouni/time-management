@@ -8,6 +8,7 @@ import {
   GlobeHemisphereEast,
   Sun,
   Moon,
+  Desktop,
   CurrencyCircleDollar,
   Coins,
   Hexagon,
@@ -24,7 +25,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import {
-  toggleTheme,
+  cycleTheme,
   cycleCurrency,
   openCalendarAsk,
 } from '../store/slices/uiSlice';
@@ -49,6 +50,7 @@ const Navbar: React.FC = () => {
   const { t, language, setLanguage } = useLanguage();
   const user = useAppSelector((s) => s.auth.user);
   const theme = useAppSelector((s) => s.ui.theme);
+  const resolvedTheme = useAppSelector((s) => s.ui.resolvedTheme);
   const currency = useAppSelector((s) => s.ui.currency);
   const calendar = useAppSelector((s) => s.ui.calendar);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -181,13 +183,32 @@ const Navbar: React.FC = () => {
             <GlobeHemisphereEast size={17} />
           </button>
 
-          {/* Theme */}
+          {/* Theme: cycles system -> light -> dark */}
           <button
-            onClick={() => dispatch(toggleTheme())}
+            onClick={() => dispatch(cycleTheme())}
             className="rounded-xl p-2 text-muted transition-colors hover:bg-inset hover:text-ink"
-            aria-label={t('nav.toggle_theme')}
+            aria-label={`${t('nav.toggle_theme')}: ${t(
+              theme === 'system'
+                ? 'common.system'
+                : theme === 'dark'
+                  ? 'common.dark'
+                  : 'common.light'
+            )}`}
+            title={t(
+              theme === 'system'
+                ? 'common.system'
+                : theme === 'dark'
+                  ? 'common.dark'
+                  : 'common.light'
+            )}
           >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            {theme === 'system' ? (
+              <Desktop size={17} />
+            ) : resolvedTheme === 'dark' ? (
+              <Sun size={17} />
+            ) : (
+              <Moon size={17} />
+            )}
           </button>
 
           {/* Calendar: open the Persian / Gregorian chooser */}

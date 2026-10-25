@@ -9,6 +9,7 @@ import {
   EnvelopeSimple,
   GlobeHemisphereEast,
   Hexagon,
+  Desktop,
   Moon,
   SignOut,
   Sun,
@@ -17,9 +18,9 @@ import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import {
-  cycleCurrency,
+  cycleTheme,
   openCalendarAsk,
-  toggleTheme,
+  cycleCurrency,
 } from '../../store/slices/uiSlice';
 import { useLanguage } from '../../hooks/useLanguage';
 import BottomSheet from './BottomSheet';
@@ -43,6 +44,7 @@ const MoreSheet: React.FC<MoreSheetProps> = ({ open, onClose }) => {
   const navigate = useNavigate();
   const user = useAppSelector((s) => s.auth.user);
   const theme = useAppSelector((s) => s.ui.theme);
+  const resolvedTheme = useAppSelector((s) => s.ui.resolvedTheme);
   const currency = useAppSelector((s) => s.ui.currency);
   const calendar = useAppSelector((s) => s.ui.calendar);
 
@@ -118,9 +120,13 @@ const MoreSheet: React.FC<MoreSheetProps> = ({ open, onClose }) => {
           <div className="grid gap-2 sm:grid-cols-2">
             {switchButton(
               t('nav.toggle_theme'),
-              theme === 'dark' ? t('common.dark') : t('common.light'),
-              () => dispatch(toggleTheme()),
-              theme === 'dark' ? Sun : Moon
+              theme === 'system'
+                ? t('common.system')
+                : resolvedTheme === 'dark'
+                  ? t('common.dark')
+                  : t('common.light'),
+              () => dispatch(cycleTheme()),
+              theme === 'system' ? Desktop : resolvedTheme === 'dark' ? Sun : Moon
             )}
             {switchButton(
               t('nav.change_language'),
