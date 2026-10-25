@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { ArrowLeft, UsersThree } from '@phosphor-icons/react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useLanguage } from '../hooks/useLanguage';

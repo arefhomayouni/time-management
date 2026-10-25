@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useGetMyPaymentsQuery } from '../store/api/apiSlice';

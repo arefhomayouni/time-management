@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   Coins,
   CurrencyCircleDollar,
+  DownloadSimple,
   EnvelopeSimple,
   GlobeHemisphereEast,
   Hexagon,
@@ -14,7 +15,7 @@ import {
   SignOut,
   Sun,
 } from '@phosphor-icons/react';
-import toast from 'react-hot-toast';
+import toast from '../../lib/toast';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import {
@@ -25,6 +26,7 @@ import {
 import { useLanguage } from '../../hooks/useLanguage';
 import BottomSheet from './BottomSheet';
 import LogTimeForm from '../dashboard/LogTimeForm';
+import { useInstallPrompt } from '../pwa/InstallPrompt';
 
 type MoreSheetProps = {
   open: boolean;
@@ -47,6 +49,8 @@ const MoreSheet: React.FC<MoreSheetProps> = ({ open, onClose }) => {
   const resolvedTheme = useAppSelector((s) => s.ui.resolvedTheme);
   const currency = useAppSelector((s) => s.ui.currency);
   const calendar = useAppSelector((s) => s.ui.calendar);
+  // Permanent way back to installation once the floating card was dismissed.
+  const { canInstall, install } = useInstallPrompt();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -111,6 +115,27 @@ const MoreSheet: React.FC<MoreSheetProps> = ({ open, onClose }) => {
             ))}
           </div>
         </section>
+
+        {/* Install the PWA - only while the browser still offers it */}
+        {canInstall && (
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
+              {t('nav.install_app')}
+            </h3>
+            <button
+              type="button"
+              onClick={async () => {
+                await install();
+                onClose();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 text-sm transition-colors hover:bg-inset"
+            >
+              <DownloadSimple size={18} className="text-accent" />
+              <span className="text-ink">{t('nav.install')}</span>
+              <ArrowRight size={15} className="ms-auto text-muted rtl:rotate-180" />
+            </button>
+          </section>
+        )}
 
         {/* Display switches */}
         <section>

@@ -8,8 +8,52 @@ import {
 import type { RootState } from "../store";
 import { logout, User } from "../slices/authSlice";
 
+const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])$/i;
+
+const withoutTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const isLoopbackUrl = (value: string) => {
+  try {
+    return LOOPBACK_HOST.test(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Where the API lives.
+ *
+ * `REACT_APP_API_URL` wins, with two escape hatches that remove the most
+ * common "it says CORS but nothing is listening" traps:
+ *
+ * 1. A loopback URL (`http://localhost:3001/api`) is meaningless when the app
+ *    is opened from a phone at `http://192.168.x.x:3000` - the phone's own
+ *    localhost is the phone. In development we swap in the host that served
+ *    the page and keep port 3001, so LAN testing just works.
+ * 2. A production build made with the dev `.env` must never point at
+ *    localhost. It falls back to `/api` on the app's own origin, which is the
+ *    same-origin deploy that needs no CORS at all.
+ */
+const resolveApiBaseUrl = (): string => {
+  const configured = (process.env.REACT_APP_API_URL || "").trim();
+  const isProd = process.env.NODE_ENV === "production";
+  const pageHost =
+    typeof window !== "undefined" ? window.location.hostname : "";
+  const pageIsLoopback = !pageHost || LOOPBACK_HOST.test(pageHost);
+
+  if (configured && (pageIsLoopback || !isLoopbackUrl(configured))) {
+    return withoutTrailingSlash(configured);
+  }
+
+  if (isProd) return "/api";
+  if (pageHost) {
+    return `${window.location.protocol}//${pageHost}:3001/api`;
+  }
+  return "http://localhost:3001/api";
+};
+
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.REACT_APP_API_URL || "http://localhost:3001/api",
+  baseUrl: resolveApiBaseUrl(),
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
     // A per-request authorization header wins (password recovery uses a

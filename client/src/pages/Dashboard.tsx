@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PlusCircle, TrendUp, Clock, Hourglass, Trash, Wallet } from '@phosphor-icons/react';
 import { useLanguage } from '../hooks/useLanguage';

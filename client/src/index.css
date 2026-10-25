@@ -720,14 +720,36 @@ body {
   display: none;
 }
 
-/* Toasts: centered above the tab bar on mobile, corner on desktop */
-@media (max-width: 1023px) {
-  [role="status"] {
-    bottom: calc(var(--mobile-tabbar-h) + 2.5rem + env(safe-area-inset-bottom, 0px)) !important;
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%);
+/* ===============================================================
+   TOASTS
+   The stack is positioned by <Toaster>; only the countdown line needs
+   CSS. transform keeps the bar cheap to animate on a phone.
+   =============================================================== */
+
+@keyframes toast-countdown {
+  from {
+    transform: scaleX(1);
   }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.toast-countdown {
+  transform-origin: left;
+  animation-name: toast-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  will-change: transform;
+}
+
+[dir="rtl"] .toast-countdown {
+  transform-origin: right;
+}
+
+/* Matches pauseToast(): the timer stops while the pointer rests on a card. */
+.group:hover .toast-countdown {
+  animation-play-state: paused;
 }
 
 /* ===============================================================

@@ -1,9 +1,9 @@
 import express from "express";
 import mongoose from "mongoose";
-import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 
-import { mongoUri, corsOrigins, isProduction } from "./config/env.js";
+import { mongoUri, isProduction } from "./config/env.js";
+import { cors } from "./middlewares/cors.js";
 import userRoutes from "./routes/userRoutes.js";
 import timeRoutes from "./routes/timeRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
@@ -18,22 +18,10 @@ const app = express();
 app.disable("x-powered-by");
 
 /**
- * CORS. With CORS_ORIGINS set, only those origins are allowed (requests with
- * no Origin header - curl, server-to-server - still pass). Without it the
- * default is permissive, which is what local development needs.
+ * CORS runs before the body parser so a preflight is answered without reading
+ * a payload, and a blocked origin gets a JSON 403 instead of an unlabelled 500.
  */
-app.use(
-  cors(
-    corsOrigins.length
-      ? {
-          origin(origin, callback) {
-            if (!origin || corsOrigins.includes(origin)) return callback(null, true);
-            return callback(new Error(`Origin ${origin} is not allowed by CORS`));
-          },
-        }
-      : {}
-  )
-);
+app.use(cors);
 
 app.use(express.json({ limit: "100kb" }));
 
@@ -57,14 +45,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 // Database connection. A failure is logged loudly but does not kill the
 // process: /health reports `database: "disconnected"` so a platform probe can
 // see the problem instead of a silent crash loop.
-mongoose
-  .connect(mongoUri, {
-    bufferTimeoutMS: 120000,
-    serverSelectionTimeoutMS: 60000,
-    connectTimeoutMS: 60000,
-  })
-  .then(() => console.log("MongoDB connected..."))
-  .catch((err) => console.error("MongoDB connection error:", err.message));
 
 const DB_STATES = ["disconnected", "connected", "connecting", "disconnecting"];
 

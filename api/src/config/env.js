@@ -60,7 +60,9 @@ if (!mongoUri) {
  */
 export const corsOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
-  .map((o) => o.trim())
+  // Browsers send the Origin header without a trailing slash and lowercased,
+  // so `https://App.example.com/` in the env must still match it.
+  .map((origin) => origin.trim().replace(/\/+$/, "").toLowerCase())
   .filter(Boolean);
 
 /**

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import {
   ArrowLeft,
   Pencil,

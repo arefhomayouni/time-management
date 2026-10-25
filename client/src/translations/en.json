@@ -267,7 +267,11 @@
     "close_menu": "Close menu",
     "more": "More",
     "settings": "Settings",
-    "menu": "Menu"
+    "menu": "Menu",
+    "install_app": "Install the app",
+    "install": "Install",
+    "install_hint": "Full-screen, faster launch and offline access on this device.",
+    "install_later": "Not now"
   },
   "about": {
     "title": "About TimeLuxe",

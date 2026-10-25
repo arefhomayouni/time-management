@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { X } from '@phosphor-icons/react';
 import { store } from './store/store';
-import { Toaster } from 'react-hot-toast';
 import { useAppSelector, useAppDispatch } from './store/hooks';
 import { syncSystemTheme } from './store/slices/uiSlice';
 import { useLanguage } from './hooks/useLanguage';
 import { onPwaUpdate } from './pwa';
 import Navbar from './components/Navbar';
+import Toaster from './components/ui/Toaster';
+import InstallPrompt from './components/pwa/InstallPrompt';
 import CalendarChooser from './components/common/CalendarChooser';
 import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
@@ -97,7 +99,11 @@ const ThemeSync: React.FC = () => {
   return null;
 };
 
-/** Offers a reload when the service worker installs a newer build. */
+/**
+ * Offers a reload when the service worker installs a newer build.
+ * Sits in the same bottom stack as toasts but above the mobile tab bar, so it
+ * never covers the navigation or the home indicator.
+ */
 const PwaUpdateBanner: React.FC = () => {
   const [applyUpdate, setApplyUpdate] = useState<(() => void) | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -107,13 +113,20 @@ const PwaUpdateBanner: React.FC = () => {
   if (!applyUpdate || dismissed) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4">
-      <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-lg">
-        <span className="text-sm text-ink">A new version is ready.</span>
+    <div className="fixed inset-x-0 bottom-[calc(var(--mobile-tabbar-h)+1rem+env(safe-area-inset-bottom,0px))] z-[70] flex justify-center px-4 lg:bottom-6">
+      <div className="flex w-full max-w-sm items-center gap-3 rounded-2xl border border-line/70 bg-surface/95 p-3.5 shadow-[0_18px_44px_-18px_rgba(24,16,10,0.38)] backdrop-blur-xl lg:max-w-md">
+        <div className="min-w-0 flex-1">
+          <p className="text-[13.5px] font-semibold leading-snug text-ink">
+            A new version is ready
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            Reload to pick up the latest update.
+          </p>
+        </div>
         <button
           type="button"
           onClick={applyUpdate}
-          className="rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink"
+          className="btn-primary !px-3.5 !py-1.5 text-xs"
         >
           Reload
         </button>
@@ -121,68 +134,9 @@ const PwaUpdateBanner: React.FC = () => {
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss update notice"
-          className="text-sm text-muted hover:text-ink"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-inset hover:text-ink"
         >
-          Later
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/** The subset of the non-standard Chrome event we rely on. */
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice?: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-};
-
-const useInstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
-    null
-  );
-
-  useEffect(() => {
-    const onBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-  }, []);
-
-  const install = () => {
-    if (!deferredPrompt) return;
-    void deferredPrompt.prompt();
-    setDeferredPrompt(null);
-  };
-
-  return { install, deferredPrompt };
-};
-
-/**
- * Install prompt banner. Lives inside <Provider> because it reads the
- * active language through useLanguage().
- */
-const InstallPromptBanner: React.FC = () => {
-  const { t } = useLanguage();
-  const { install, deferredPrompt } = useInstallPrompt();
-
-  // Touch devices get the native app chrome instead of a desktop banner.
-  const isPointerFine =
-    typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
-
-  if (!deferredPrompt || !isPointerFine) return null;
-
-  return (
-    <div className="fixed inset-x-0 top-4 z-[55] flex justify-center px-4" role="region" aria-label={t('nav.install_app')}>
-      <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-lg">
-        <span className="text-sm text-ink">{t('nav.install_app')}</span>
-        <button
-          type="button"
-          onClick={install}
-          className="rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink"
-        >
-          {t('nav.install')}
+          <X size={14} weight="bold" />
         </button>
       </div>
     </div>
@@ -272,24 +226,9 @@ const AppRoutes: React.FC = () => {
         {/* Unknown routes: send people somewhere real */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            borderRadius: '12px',
-            background: 'rgb(var(--c-surface))',
-            color: 'rgb(var(--c-ink))',
-            border: '1px solid rgb(var(--c-line))',
-            fontSize: '14px',
-            fontFamily: '"Outfit Variable", sans-serif',
-            boxShadow: '0 12px 32px -12px rgba(0,0,0,0.25)',
-          },
-          success: { iconTheme: { primary: 'rgb(var(--c-success))', secondary: '#fff' } },
-          error: { iconTheme: { primary: 'rgb(var(--c-accent))', secondary: 'rgb(var(--c-accent-ink))' } },
-        }}
-      />
+      <Toaster />
       <PwaUpdateBanner />
-      <InstallPromptBanner />
+      <InstallPrompt />
       {/* Mobile app chrome: bottom tab bar + the "more" sheet */}
       <MobileTabBar active={activeTab} />
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />

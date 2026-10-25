@@ -30,7 +30,7 @@ import {
   openCalendarAsk,
 } from '../store/slices/uiSlice';
 import { useLanguage } from '../hooks/useLanguage';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 
 const BRAND = process.env.REACT_APP_BRAND || 'TimeLuxe';
 

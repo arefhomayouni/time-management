@@ -1,7 +1,7 @@
 import React from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import toast from 'react-hot-toast';
+import toast from '../../lib/toast';
 import { useLanguage } from '../../hooks/useLanguage';
 import {
   useAddTimeLogMutation,

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { UserPlus } from '@phosphor-icons/react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { TiltCard, EASE_OUT } from '../components/motion/kinetics';
