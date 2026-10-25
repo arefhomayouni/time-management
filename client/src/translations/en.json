@@ -26,7 +26,8 @@
     "empty": "Nothing here yet",
     "close": "Close",
     "dark": "Dark",
-    "light": "Light"
+    "light": "Light",
+    "system": "System"
   },
   "auth": {
     "login_title": "Welcome back",
